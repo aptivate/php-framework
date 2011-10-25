@@ -17,6 +17,17 @@ class Aptivate_Request extends ArrayObject
 	private $post;
 	private $cookies;
 	
+	private static function remove_suffix($path, $suffix, $alternative)
+	{
+		if (isset($path) and isset($suffix) and
+			substr($path, strlen($path) - strlen($suffix)) == $suffix)
+		{
+			return substr($path, 0, strlen($path) - strlen($suffix));
+		}
+		
+		return $alternative;
+	}
+	
 	public function __construct($method = null, $path = null,
 		array $getParams = null, array $postParams = null, 
 		array $cookies = null)
@@ -34,16 +45,32 @@ class Aptivate_Request extends ArrayObject
 			$this->method = null;
 		}
 
-		if (isset($_SERVER['PATH_INFO']) and
-			substr($_SERVER['REQUEST_URI'],
-				strlen($_SERVER['REQUEST_URI']) -
-				strlen($_SERVER['PATH_INFO'])) == $_SERVER['PATH_INFO'])
+		if (isset($_SERVER['REQUEST_URI']) and
+			isset($_SERVER['PATH_INFO']))
 		{
-			// Request URI suffix is the same as the path info, so
-			// whatever comes before it is the application root.
-			$this->app_root = substr($_SERVER['REQUEST_URI'], 0,
-				strlen($_SERVER['REQUEST_URI']) -
-				strlen($_SERVER['PATH_INFO']));
+			$path_without_query = $_SERVER['REQUEST_URI'];
+			
+			if (isset($_SERVER['QUERY_STRING']))
+			{
+				$path_without_query = $this->remove_suffix(
+					$path_without_query, /* haystack */
+					'?'.$_SERVER['QUERY_STRING'], /* needle */
+					$path_without_query /* alternative */);
+			}
+			
+			$this->app_root = $this->remove_suffix(
+				$path_without_query, /* haystack */
+				$_SERVER['PATH_INFO'], /* needle */
+				null /* alternative, leaves $this->app_root unset */);
+			/*
+			print_r($_SERVER);
+			print("path without query = $path_without_query\n");
+			print("app root = $this->app_root\n");
+			*/
+		}
+
+		if (isset($this->app_root))
+		{
 			$this->app_path = $_SERVER['PATH_INFO'];
 		}
 		elseif (isset($path))
@@ -92,6 +119,11 @@ class Aptivate_Request extends ArrayObject
 	public function params()
 	{
 		return array_merge($this->get, $this->post);
+	}
+	
+	public function method()
+	{
+		return $this->method;
 	}
 	
 	public function isPost()
