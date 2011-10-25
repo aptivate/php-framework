@@ -33,8 +33,7 @@ class Aptivate_Form
 	private $contextObject;
 	private $requestParams;
 	
-	public function __construct($formName, 
-		ActiveRecord\Model $contextObject,
+	public function __construct($formName, $contextObject,
 		$requestParams = null)
 	{
 		$this->formName = $formName;
@@ -52,13 +51,19 @@ class Aptivate_Form
 	 * Convert an array() of attribute values to an HTML attribute
 	 * string, with escaping.
 	 */
-	public function attributes($attribs)
+	public function attributes(array $attribs)
 	{
 		$output = "";
 	
-		foreach ($attribs as $aname => $avalue)
+		foreach ($attribs as $name => $value)
 		{
-			$output .= "$aname='" . htmlentities($avalue, ENT_QUOTES) . "' ";
+			if (is_array($value))
+			{
+				throw new Exception("Attribute $name value should be ".
+					"a string, not an array: ".print_r($value, TRUE));
+			}
+			
+			$output .= "$name='".htmlentities($value, ENT_QUOTES)."' ";
 		}
 
 		return $output;
@@ -230,15 +235,12 @@ class Aptivate_Form
 		return $this->contextObject->$name;
 	}
 
-	function hidden($name, $value)
+	function hidden($fieldName)
 	{
-		$attribs = array_merge(
-			array(
-				'type' => 'hidden',
-				'name' => $this->parameterName($fieldName),
-				'value' => $this->currentValue($fieldName),
-				),
-			$attribs
+		$attribs = array(
+			'type' => 'hidden',
+			'name' => $this->parameterName($fieldName),
+			'value' => $this->currentValue($fieldName),
 			);
 		return '<input '.$this->attributes($attribs).'/>';
 	}
