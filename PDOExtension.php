@@ -109,6 +109,26 @@ class Aptivate_PDOExtension extends PDO
 	}
 
 	/**
+	 * Prepare and execute a query that returns multiple rows from
+	 * the database, fetch the rows using the specified fetch mode,
+	 * and return them to the caller after cleaning up.
+	 *
+	 * @param $query the SQL query to execute
+	 * @param $fetchMode the fetch mode to use for the result,
+	 * defaulting to PDO::FETCH_OBJ which returns an anonymous object.
+	 * @param $attribs an optional associative array of parameter values
+	 * to bind to the query before execution.
+	 */
+	public function queryRows($query, $attribs = array(),
+		$fetchMode = PDO::FETCH_OBJ)
+	{
+		$stmt = $this->prepareBindExec($query, $attribs);
+		$rows = $stmt->fetchAll($fetchMode);
+		$stmt->closeCursor();
+		return $rows;
+	}
+
+	/**
 	 * Same as queryRow, but throw an exception if no row is returned.
 	 *
 	 * @param $query the SQL query to execute
