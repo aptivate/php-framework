@@ -56,8 +56,9 @@ class Aptivate_PDOExtension extends PDO
 		
 		try
 		{
+			$old_args = func_get_args();
 			$stmt = call_user_func_array(array($this, "PDO::prepare"),
-				func_get_args());
+				$old_args);
 		}
 		catch (Exception $e)
 		{
