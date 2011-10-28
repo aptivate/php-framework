@@ -316,6 +316,94 @@ class Aptivate_Form
 			);
 		return '<input '.$this->attributes($attribs).'/>';
 	}
+	
+	function radioButtonWithLabel($fieldName, $radioValue, $label,
+		$attribs = array())
+	{
+		if (!isset($attribs['id']))
+		{
+			$attribs['id'] = $this->formName."_".$fieldName;
+		}
+		
+		$fieldValue = $this->currentValue($fieldName);
+
+		// print("field=$fieldValue radio=$radioValue\n");
+		
+		if (isset($fieldValue) AND $radioValue == $fieldValue)
+		{
+			$attribs["checked"] = "checked";
+		}
+		
+		$attribs = array_merge(
+			array(
+				'type' => 'radio',
+				'id' => $this->formName."_".$fieldName,
+				'name' => $this->parameterName($fieldName),
+				'value' => $radioValue),
+			$attribs);
+			
+		return "<input ".$this->attributes($attribs)."/>\n".
+			"<label for='".$attribs['id']."'>".htmlentities($label).
+			"</label>\n";
+	}
+
+	function radioButtonSet($fieldName, $options, $legend = "",
+		$css_class = "", $as_list = FALSE)
+	{
+		$output = "";
+	
+		if ($as_list)
+		{
+			$output .= "
+			<ul>
+				<li class='list_title'>$legend</li>";
+		}
+		else if ($legend)
+		{
+			$output .= "
+			<legend>$legend</legend>";
+		}
+	
+		foreach ($options as $i => $thisValue)
+		{
+			if ($as_list)
+			{
+				if ($css_class)
+				{
+					$output .= "<li class='".$css_class."_".
+						preg_replace('|[^A-Za-z0-9]+|', '_', $value).
+						"'>\n";
+				}
+				else
+				{	
+					$output .= "<li>\n";
+				}
+			}
+		
+			$output .= $this->radioButtonWithLabel($fieldName,
+				$i /* submitted value */, $thisValue /* form label */);
+
+			if ($as_list)
+			{	
+				$output .= "</li>";
+			}
+		}
+	
+		if ($as_list)
+		{
+			$output .= "
+				</ul>";
+		}
+		
+		$errors = $this->errorsOn($fieldName);
+		$output = $this->formatFieldWithErrors($output, $errors);
+		$output = "
+			<fieldset class='$css_class'>
+			$output
+			</fieldset>";
+		
+		return $output;
+	}
 };
 
 /**
@@ -1113,80 +1201,6 @@ function find_in_set($param_name, &$query_array, $sql_field_name = "")
 		}
 		$query_array[] = "(" . $sql_condition . ")";
 	}
-}
-
-function radioButtonWithLabel($tid, $name, $field_value, $radio_value, $label,
-	$attribs = array())
-{
-	$name_h  = htmlentities($name);
-	$value_h = htmlentities($radio_value);
-	$label_h = htmlentities($label);
-
-	if ($_SERVER['REQUEST_METHOD'] == 'POST')
-	{
-		$field_value = $_POST[$name][0];
-	}
-	
-	if ($field_value AND $radio_value == $field_value)
-	{
-		$attribs["checked"] = "checked";
-	}
-	
-	$output = 	"<input id='$tid' type='radio' value='$value_h' " .
-				"name='$name_h" . "[]' " . attributes($attribs) . " />\n";
-	$output .= 	"<label for='$tid'>$label_h</label>\n";
-	return $output;
-}
-
-function radioButtonSet($param_name, $active, $options, $legend = "",
-	$css_class = "", $as_list = FALSE)
-{
-	$output = "
-	<fieldset class='$css_class'>";
-	
-	if ($as_list)
-	{
-		$output .= "
-		<ul>
-			<li class='list_title'>$legend</li>";
-	}
-	else if ($legend)
-	{
-		$output .= "
-		<legend>$legend</legend>";
-	}
-	
-	foreach ($options as $i => $value)
-	{
-		if ($as_list)
-		{
-			if ($css_class)
-			{
-				$output .= "<li class='".$css_class."_".$value."'>\n";
-			}
-			else
-			{	
-				$output .= "<li>\n";
-			}
-		}
-		
-		$output .= radioButtonWithLabel($param_name."_".$i, $param_name,
-			$active, $value, $value);
-		if ($as_list)
-		{	
-			$output .= "</li>";
-		}
-	}
-	
-	if ($as_list)
-	{
-		$output .= "
-			</ul>";
-	}
-	$output .= "
-	</fieldset>";
-	
-	return $output;
 }
 
 function radioButtonDiv($label, $name, $record, $options, $read_only, $div_class,
