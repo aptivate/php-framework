@@ -50,6 +50,18 @@ class Aptivate_Form
 		return $this->contextObject;
 	}
 	
+	public function errorsOn($fieldName)
+	{
+		if (isset($this->contextObject->errors) and
+			isset($this->contextObject->errors['on']) and
+			isset($this->contextObject->errors['on'][$fieldName]))
+		{
+			return $this->contextObject->errors['on'][$fieldName];
+		}
+		
+		return array();
+	}
+	
 	/**
 	 * Convert an array() of attribute values to an HTML attribute
 	 * string, with escaping.
@@ -88,6 +100,35 @@ class Aptivate_Form
 		
 		return $this->contextObject->$fieldName;
 	}
+	
+	function formatFieldWithErrors($fieldHtml, $errors)
+	{
+		if (count($errors))
+		{
+			$html = "<span class='field_with_errors'>$fieldHtml";
+			
+			if (count($errors) > 1)
+			{
+				$html .= "<ul class='error'>\n";
+				foreach ($errors as $error)
+				{
+					$html .= "<li>$error</li>\n";
+				}
+				$html .= "</ul>\n";
+			}
+			else
+			{
+				$html .= "<span class='error'>$errors[0]</span>\n";
+			}
+			
+			$html .= "</span>\n";
+			return $html;
+		}
+		else
+		{
+			return $fieldHtml;
+		}
+	}
 
 	function textBox($fieldName, $attribs = array(), $read_only = FALSE)
 	{
@@ -105,7 +146,10 @@ class Aptivate_Form
 					),
 				$attribs
 				);
-			return '<input '.$this->attributes($attribs).'/>';
+			
+			$html = '<input '.$this->attributes($attribs).'/>';	
+			$errors = $this->errorsOn($fieldName);
+			return $this->formatFieldWithErrors($html, $errors);
 		}
 	}
 
