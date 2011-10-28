@@ -27,6 +27,9 @@
  * from the context object. This is to allow keeping state on form
  * submissions.
  */
+
+require_once(dirname(__FILE__).'/request.php');
+
 class Aptivate_Form
 {
 	private $formName;
@@ -86,17 +89,24 @@ class Aptivate_Form
 		return $this->contextObject->$fieldName;
 	}
 
-	function textBox($fieldName, $attribs = array())
+	function textBox($fieldName, $attribs = array(), $read_only = FALSE)
 	{
-		$attribs = array_merge(
-			array(
-				'type' => 'text',
-				'name' => $this->parameterName($fieldName),
-				'value' => $this->currentValue($fieldName),
-				),
-			$attribs
-			);
-		return '<input '.$this->attributes($attribs).'/>';
+		if ($read_only)
+		{
+			return htmlentities($this->currentValue($fieldName));
+		}
+		else
+		{
+			$attribs = array_merge(
+				array(
+					'type' => 'text',
+					'name' => $this->parameterName($fieldName),
+					'value' => $this->currentValue($fieldName),
+					),
+				$attribs
+				);
+			return '<input '.$this->attributes($attribs).'/>';
+		}
 	}
 
 	function textBoxRow($label, $fieldName, $read_only = FALSE,
@@ -136,6 +146,18 @@ class Aptivate_Form
 		</tr>";
 	
 		return $output;
+	}
+
+	function textArea($fieldName, $attribs = array())
+	{
+		$attribs = array_merge(
+			array('name' => $this->parameterName($fieldName)),
+			$attribs
+			);
+		$value = htmlentities($this->currentValue($fieldName),
+			ENT_QUOTES);
+		return "<textarea ".$this->attributes($attribs)."/>".
+			$value."</textarea>";
 	}
 	
 	function submitButton($label, $name = "commit")
@@ -237,10 +259,16 @@ class Aptivate_Form
 
 	function hidden($fieldName)
 	{
+		return $this->hiddenAny($this->parameterName($fieldName),
+			$this->currentValue($fieldName));
+	}
+
+	function hiddenAny($fieldName, $value)
+	{
 		$attribs = array(
 			'type' => 'hidden',
-			'name' => $this->parameterName($fieldName),
-			'value' => $this->currentValue($fieldName),
+			'name' => $fieldName,
+			'value' => $value,
 			);
 		return '<input '.$this->attributes($attribs).'/>';
 	}
