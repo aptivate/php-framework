@@ -53,6 +53,7 @@ class Aptivate_Form
 	public function errorsOn($fieldName)
 	{
 		if (isset($this->contextObject->errors) and
+			is_array($this->contextObject->errors) and
 			isset($this->contextObject->errors['on']) and
 			isset($this->contextObject->errors['on'][$fieldName]))
 		{
