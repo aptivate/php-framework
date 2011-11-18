@@ -88,6 +88,8 @@ class Aptivate_Request extends ArrayObject
 		}
 		elseif (isset($_SERVER['REQUEST_URI']))
 		{
+			error_log("Aptivate_Request constructed with no ".
+				"PATH_INFO or explicit path");
 			// leave unset to cause an error if used
 		}
 		
