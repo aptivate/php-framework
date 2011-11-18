@@ -24,6 +24,15 @@ class Aptivate_PDOExtension extends PDO
 				$errorInfo[2]);
 		}
 
+		preg_match_all("/:(\w+)/", $query, $matches);
+		foreach ($matches[1] as $name)
+		{
+			if (! array_key_exists($name, $attribs)) 
+			{
+				throw new Exception("You haven't supplied a value for :$name in query: $query");
+			}
+		}
+
 		foreach ($attribs as $name => $value)
 		{
 			$stmt->bindValue(":$name", $value);
