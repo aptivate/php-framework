@@ -10,8 +10,18 @@ require_once(dirname(__FILE__).DIRECTORY_SEPARATOR.'url_helper.php');
  */
 class Aptivate_Request extends ArrayObject
 {
+	/**
+	 * app_path DOES NOT include a leading slash, useful for relative
+	 * paths when a <base> element is included in the page.
+	 */
 	public $app_path;
+	
+	/**
+	 * app_root DOES include a leading slash, useful for absolute paths
+	 * when there is no <base> element, or it's unreliable, e.g. IE CSS.
+	 */
 	public $app_root;
+	
 	private $method;
 	private $get;
 	private $post;
@@ -93,6 +103,14 @@ class Aptivate_Request extends ArrayObject
 			// leave unset to cause an error if used
 		}
 		
+		if (substr($this->app_path, 0, 1) != '/')
+		{
+			error_log("path must start with a slash for us to ".
+				"trim it: ".$this->app_path);
+		}
+		
+		$this->app_path = substr($this->app_path, 1);
+		
 		$this->get     = isset($getParams)  ? $getParams  : $_GET;
 		$this->post    = isset($postParams) ? $postParams : $_POST;
 		$this->cookies = isset($cookies)    ? $cookies    : $_COOKIE;
@@ -141,7 +159,7 @@ class Aptivate_Request extends ArrayObject
 	 */
 	public function offsetGet($index)
 	{
-		$req = new Aptivate_Request($this->method, $this->app_path,
+		$req = new Aptivate_Request($this->method, '/'.$this->app_path,
 			isset($this->get[$index])  ? $this->get[$index]  : array(),
 			isset($this->post[$index]) ? $this->post[$index] : array(),
 			$this->cookies);
@@ -170,7 +188,7 @@ class Aptivate_Request extends ArrayObject
 	{
 		if ($include_app_root)
 		{
-			$uri = $this->app_root . $this->app_path;
+			$uri = $this->app_root.'/'.$this->app_path;
 		}
 		else
 		{
