@@ -1,20 +1,39 @@
 <?php
 
 /*
-	
-	Copyright (c) Reece Pegues
-	sitetheory.com
-
-	Reece PHP Calendar is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or 
-	any later version if you wish.
-
-    You should have received a copy of the GNU General Public License
-    along with this file; if not, write to the Free Software
-    Foundation Inc, 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-	
-*/
+ * Copyright 2009-2012 Aptivate Ltd. and Chris Wilson. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ *
+ * Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE FREEBSD PROJECT ``AS IS'' AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE FREEBSD PROJECT OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+ * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * The views and conclusions contained in the software and documentation
+ * are those of the authors and should not be interpreted as representing
+ * official policies, either expressed or implied, of Aptivate Ltd.
+ *
+ * <http://www.freebsd.org/copyright/freebsd-license.html>
+ *
+ * Inspired by "Reece PHP Calendar" by Reece Pegues, but contains no code
+ * from that project (any more).
+ */
 
 /**
  * Every form has a Context Object, which form values will be taken
@@ -52,12 +71,27 @@ class Aptivate_Form
 	
 	public function errorsOn($fieldName)
 	{
-		if (isset($this->contextObject->errors) and
-			is_array($this->contextObject->errors) and
-			isset($this->contextObject->errors['on']) and
-			isset($this->contextObject->errors['on'][$fieldName]))
+		if (isset($this->contextObject->errors))
 		{
-			return $this->contextObject->errors['on'][$fieldName];
+			$error_object = $this->contextObject->errors;
+			
+			if ($error_object instanceof ActiveRecord\Errors)
+			{
+				return $error_object->on($fieldName);
+			}
+			elseif (is_array($this->contextObject->errors))
+			{
+				if (isset($this->contextObject->errors['on']) and
+					isset($this->contextObject->errors['on'][$fieldName]))
+				{
+					return $this->contextObject->errors['on'][$fieldName];
+				}
+			}
+			else
+			{
+				throw new Exception("Error object is neither ".
+					"ActiveRecord\\Errors or an array");
+			}
 		}
 		
 		return array();
@@ -85,6 +119,15 @@ class Aptivate_Form
 		return $output;
 	}
 	
+	/**
+	 * @return all values associated with this form, as an array that
+	 * can be used to update_attributes() on the contextObject.
+	 */
+	public function values()
+	{
+		return $this->request[$this->formName]->params();
+	}
+	
 	public function parameterName($fieldName)
 	{
 		return $this->formName."[$fieldName]";
@@ -108,7 +151,13 @@ class Aptivate_Form
 		{
 			$html = "<span class='field_with_errors'>$fieldHtml";
 			
-			if (count($errors) > 1)
+			if (!is_array($errors))
+			{
+				// ActiveRecord\Errors returns a simple string
+				// if there's only one error
+				$html .= "<span class='error'>$errors</span>\n";
+			}
+			elseif (count($errors) > 1)
 			{
 				$html .= "<ul class='error'>\n";
 				foreach ($errors as $error)
@@ -201,8 +250,10 @@ class Aptivate_Form
 			);
 		$value = htmlentities($this->currentValue($fieldName),
 			ENT_QUOTES);
-		return "<textarea ".$this->attributes($attribs)."/>".
+		$html = "<textarea ".$this->attributes($attribs)."/>".
 			$value."</textarea>";
+		$errors = $this->errorsOn($fieldName);
+		return $this->formatFieldWithErrors($html, $errors);
 	}
 	
 	function submitButton($label, $name = "commit")
