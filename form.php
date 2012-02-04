@@ -53,10 +53,10 @@ class Aptivate_Form
 {
 	private $formName;
 	private $contextObject;
-	private $requestParams;
+	private $request;
 	
 	public function __construct($formName, $contextObject,
-		$requestParams = null)
+		$request = null)
 	{
 		$this->formName = $formName;
 		$this->contextObject = $contextObject;
@@ -136,10 +136,11 @@ class Aptivate_Form
 	public function currentValue($fieldName)
 	{
 		$paramName = $this->parameterName($fieldName);
+		$values = $this->values();
 		
-		if (isset($this->requestParams[$paramName]))
+		if (isset($values[$fieldName]))
 		{
-			return $this->requestParams[$paramName];
+			return $values[$fieldName];
 		}
 		
 		return $this->contextObject->$fieldName;
@@ -368,9 +369,9 @@ class Aptivate_Form
 			);
 		return '<input '.$this->attributes($attribs).'/>';
 	}
-	
-	function radioButtonWithLabel($fieldName, $radioValue, $label,
-		$attribs = array())
+
+	function booleanControlWithLabel($fieldName, $controlValue, $label,
+		$multipleSelect = FALSE, $attribs = array())
 	{
 		if (!isset($attribs['id']))
 		{
@@ -378,25 +379,45 @@ class Aptivate_Form
 		}
 		
 		$fieldValue = $this->currentValue($fieldName);
-
-		// print("field=$fieldValue radio=$radioValue\n");
 		
-		if (isset($fieldValue) AND $radioValue == $fieldValue)
+		if ($multipleSelect)
+		{
+			if (in_array($controlValue, $fieldValue))
+			{
+				$attribs["checked"] = "checked";
+			}
+		}
+		elseif (isset($fieldValue) and $controlValue == $fieldValue)
 		{
 			$attribs["checked"] = "checked";
+		}
+		
+		$nameAttribute = $this->parameterName($fieldName);
+		
+		if ($multipleSelect)
+		{
+			$nameAttribute .= "[]";
 		}
 		
 		$attribs = array_merge(
 			array(
 				'type' => 'radio',
 				'id' => $this->formName."_".$fieldName,
-				'name' => $this->parameterName($fieldName),
-				'value' => $radioValue),
+				'name' => $nameAttribute,
+				'value' => $controlValue),
 			$attribs);
 			
 		return "<input ".$this->attributes($attribs)."/>\n".
 			"<label for='".$attribs['id']."'>".htmlentities($label).
 			"</label>\n";
+	}
+	
+	function radioButtonWithLabel($fieldName, $radioValue, $label,
+		$attribs = array())
+	{
+		return $this->booleanControlWithLabel($fieldName, $radioValue,
+			$label, FALSE,
+			array_merge(array('type' => 'radio'), $attribs));
 	}
 
 	function radioButtonSet($fieldName, $options, $legend = "",
@@ -454,6 +475,90 @@ class Aptivate_Form
 			$output
 			</fieldset>";
 		
+		return $output;
+	}
+
+	function checkBoxWithLabel($fieldName, $checkboxValue, $label,
+		$attribs = array())
+	{
+		return $this->booleanControlWithLabel($fieldName, $checkboxValue,
+			$label, TRUE,
+			array_merge(array('type' => 'checkbox'), $attribs));
+	}
+
+	/**
+	 * Returns the HTML for a fieldset of checkboxes, where the values
+	 * of the checkboxes equal their labels, instead of their indexes
+	 * into the $options array.
+	 */
+	function checkBoxSetIdentity($fieldName, $options, $legend = "",
+		$css_class = "", $as_list = FALSE)
+	{
+		$identity_values = array();
+		foreach ($options as $i => $value)
+		{
+			$identity_values[$value] = $value;
+		}
+		return $this->checkBoxSet($fieldName, $identity_values,
+			$legend, $css_class, $as_list);
+	}
+	
+	/**
+	 * Returns the HTML for a fieldset of checkboxes, where the values
+	 * of the checkboxes equal their indexes into the $options array,
+	 * and the labels are the values of the $options array.
+	 */
+	function checkBoxSet($fieldName, $options, $legend = "",
+		$css_class = "", $as_list = FALSE)
+	{
+		$output = "";
+
+		if ($legend)
+		{
+			$output .= "
+			<legend>$legend</legend>";
+		}
+		
+		if ($as_list)
+		{
+			$output .= "
+			<ul>";
+		}
+
+		foreach ($options as $i => $value)
+		{
+			if ($as_list)
+			{
+				if ($css_class)
+				{
+					$output .= "<li class='".$css_class."_".$i."'>\n";
+				}
+				else
+				{	
+					$output .="<li>\n";
+				}
+			}
+			$output .= $this->checkBoxWithLabel($fieldName,
+				$i, $value);
+			if ($as_list)
+			{
+				$output .= "</li>";
+			}
+		}
+	
+		if ($as_list)
+		{
+			$output .= "
+			</ul>";
+		}
+
+		$errors = $this->errorsOn($fieldName);
+		$output = $this->formatFieldWithErrors($output, $errors);
+		$output = "
+			<fieldset class='$css_class'>
+			$output
+			</fieldset>";
+	
 		return $output;
 	}
 };
@@ -1002,46 +1107,6 @@ function attachFiles($field, $value, $delete_action, $read_only,
 	return $output;
 }
 
-function checkBoxWithLabel($tid, $name, $field_value, $checkbox_value,
-	$label, $attribs = array())
-{
-	$name_h  = htmlentities($name);
-	$value_h = htmlentities($checkbox_value);
-	$label_h = htmlentities($label);
-
-	if (substr($name, -2) == "[]")
-	{
-		$name = substr($name, 0, -2);
-	}
-
-	if ($_SERVER['REQUEST_METHOD'] == 'POST')
-	{
-		$values = $_POST[$name];
-	}
-	else if ($_GET[$name])
-	{
-		$values = $_GET[$name];
-	}
-	else
-	{
-		$values = explode(",", $field_value);
-	}
-
-	if (is_array($values) AND in_array((String)$checkbox_value, $values))
-	{
-		$attribs["checked"] = "checked";
-	}
-	else if (!is_array($values) AND $values)
-	{
-		$attribs["checked"] = "checked";
-	}
-
-	$output = 	"<input id='$tid' type='checkbox' value='$value_h' " .
-				"name='$name_h' " . attributes($attribs) . " />\n";
-	$output .= 	"<label for='$tid'>$label_h</label>\n";	
-	return $output;
-}
-
 function checkBoxWithoutOverride($tid, $name, $field_value, $checkbox_value,
 	$label, $attribs = array())
 {
@@ -1059,56 +1124,6 @@ function checkBoxWithoutOverride($tid, $name, $field_value, $checkbox_value,
 	$output = 	"<input id='$tid' type='checkbox' value='$value_h' " .
 				"name='$name_h" . "[]' " . attributes($attribs) . " />\n";
 	$output .= 	"<label for='$tid'>$label_h</label>\n";	
-	return $output;
-}
-
-function checkBoxSet($param_name, $active, $options, $legend = "",
-	$css_class = "", $as_list = FALSE)
-{
-	$output = "
-	<fieldset ". ($css_class ? "class='$css_class'" : "") ." >";
-	
-	if ($as_list)
-	{
-		$output .= "
-		<ul>
-			<li class='list_title'>$legend</li>";
-	}
-	else if ($legend)
-	{
-		$output .= "
-		<legend>$legend</legend>";
-	}
-
-	foreach ($options as $i => $value)
-	{
-		if ($as_list)
-		{
-			if ($css_class)
-			{
-				$output .= "<li class='".$css_class."_".$value."'>\n";
-			}
-			else
-			{	
-				$output .="<li>\n";
-			}
-		}
-		$output .= checkBoxWithLabel($param_name."_".$i, $param_name."[]",
-			$active, $value, $value);
-		if ($as_list)
-		{
-			$output .= "</li>";
-		}
-	}
-	
-	if ($as_list)
-	{
-		$output .= "
-		</ul>";
-	}
-	$output .="
-		</fieldset>";
-	
 	return $output;
 }
 
