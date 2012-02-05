@@ -380,7 +380,7 @@ class Aptivate_Form
 		
 		$fieldValue = $this->currentValue($fieldName);
 		
-		if ($multipleSelect)
+		if ($multipleSelect and $fieldValue)
 		{
 			if (in_array($controlValue, $fieldValue))
 			{
