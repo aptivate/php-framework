@@ -6,6 +6,24 @@
 class Aptivate_PDOExtension extends PDO
 {
 	/**
+	 * If database open fails, report the DSN! (including the file
+	 * name for sqlite databases)
+	 */
+	public function __construct($dsn)
+	{
+		try
+		{
+			// you can't just pass func_get_args() to call_user_func_array?
+			$args = func_get_args();
+			call_user_func_array(array('parent', '__construct'), $args);
+		}
+		catch (Exception $e)
+		{
+			throw new Exception("Failed to open database: $dsn: $e");
+		}
+	}
+
+	/**
 	 * Prepare and execute a query and return a statement to the caller.
 	 *
 	 * @param $query the SQL query to execute
