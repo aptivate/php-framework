@@ -1,20 +1,39 @@
 <?php
 
 /*
-	
-	Copyright (c) Reece Pegues
-	sitetheory.com
-
-	Reece PHP Calendar is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or 
-	any later version if you wish.
-
-    You should have received a copy of the GNU General Public License
-    along with this file; if not, write to the Free Software
-    Foundation Inc, 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-	
-*/
+ * Copyright 2009-2012 Aptivate Ltd. and Chris Wilson. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ *
+ * Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE FREEBSD PROJECT ``AS IS'' AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE FREEBSD PROJECT OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+ * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * The views and conclusions contained in the software and documentation
+ * are those of the authors and should not be interpreted as representing
+ * official policies, either expressed or implied, of Aptivate Ltd.
+ *
+ * <http://www.freebsd.org/copyright/freebsd-license.html>
+ *
+ * Inspired by "Reece PHP Calendar" by Reece Pegues, but contains no code
+ * from that project (any more).
+ */
 
 /**
  * Every form has a Context Object, which form values will be taken
@@ -34,10 +53,10 @@ class Aptivate_Form
 {
 	private $formName;
 	private $contextObject;
-	private $requestParams;
+	private $request;
 	
 	public function __construct($formName, $contextObject,
-		$requestParams = null)
+		$request = null)
 	{
 		$this->formName = $formName;
 		$this->contextObject = $contextObject;
@@ -52,12 +71,27 @@ class Aptivate_Form
 	
 	public function errorsOn($fieldName)
 	{
-		if (isset($this->contextObject->errors) and
-			is_array($this->contextObject->errors) and
-			isset($this->contextObject->errors['on']) and
-			isset($this->contextObject->errors['on'][$fieldName]))
+		if (isset($this->contextObject->errors))
 		{
-			return $this->contextObject->errors['on'][$fieldName];
+			$error_object = $this->contextObject->errors;
+			
+			if ($error_object instanceof ActiveRecord\Errors)
+			{
+				return $error_object->on($fieldName);
+			}
+			elseif (is_array($this->contextObject->errors))
+			{
+				if (isset($this->contextObject->errors['on']) and
+					isset($this->contextObject->errors['on'][$fieldName]))
+				{
+					return $this->contextObject->errors['on'][$fieldName];
+				}
+			}
+			else
+			{
+				throw new Exception("Error object is neither ".
+					"ActiveRecord\\Errors or an array");
+			}
 		}
 		
 		return array();
@@ -85,6 +119,15 @@ class Aptivate_Form
 		return $output;
 	}
 	
+	/**
+	 * @return all values associated with this form, as an array that
+	 * can be used to update_attributes() on the contextObject.
+	 */
+	public function values()
+	{
+		return $this->request[$this->formName]->params();
+	}
+	
 	public function parameterName($fieldName)
 	{
 		return $this->formName."[$fieldName]";
@@ -93,10 +136,11 @@ class Aptivate_Form
 	public function currentValue($fieldName)
 	{
 		$paramName = $this->parameterName($fieldName);
+		$values = $this->values();
 		
-		if (isset($this->requestParams[$paramName]))
+		if (isset($values[$fieldName]))
 		{
-			return $this->requestParams[$paramName];
+			return $values[$fieldName];
 		}
 		
 		return $this->contextObject->$fieldName;
@@ -108,7 +152,13 @@ class Aptivate_Form
 		{
 			$html = "<span class='field_with_errors'>$fieldHtml";
 			
-			if (count($errors) > 1)
+			if (!is_array($errors))
+			{
+				// ActiveRecord\Errors returns a simple string
+				// if there's only one error
+				$html .= "<span class='error'>$errors</span>\n";
+			}
+			elseif (count($errors) > 1)
 			{
 				$html .= "<ul class='error'>\n";
 				foreach ($errors as $error)
@@ -201,8 +251,10 @@ class Aptivate_Form
 			);
 		$value = htmlentities($this->currentValue($fieldName),
 			ENT_QUOTES);
-		return "<textarea ".$this->attributes($attribs)."/>".
+		$html = "<textarea ".$this->attributes($attribs)."/>".
 			$value."</textarea>";
+		$errors = $this->errorsOn($fieldName);
+		return $this->formatFieldWithErrors($html, $errors);
 	}
 	
 	function submitButton($label, $name = "commit")
@@ -317,9 +369,9 @@ class Aptivate_Form
 			);
 		return '<input '.$this->attributes($attribs).'/>';
 	}
-	
-	function radioButtonWithLabel($fieldName, $radioValue, $label,
-		$attribs = array())
+
+	function booleanControlWithLabel($fieldName, $controlValue, $label,
+		$multipleSelect = FALSE, $attribs = array())
 	{
 		if (!isset($attribs['id']))
 		{
@@ -327,25 +379,45 @@ class Aptivate_Form
 		}
 		
 		$fieldValue = $this->currentValue($fieldName);
-
-		// print("field=$fieldValue radio=$radioValue\n");
 		
-		if (isset($fieldValue) AND $radioValue == $fieldValue)
+		if ($multipleSelect and $fieldValue)
+		{
+			if (in_array($controlValue, $fieldValue))
+			{
+				$attribs["checked"] = "checked";
+			}
+		}
+		elseif (isset($fieldValue) and $controlValue == $fieldValue)
 		{
 			$attribs["checked"] = "checked";
+		}
+		
+		$nameAttribute = $this->parameterName($fieldName);
+		
+		if ($multipleSelect)
+		{
+			$nameAttribute .= "[]";
 		}
 		
 		$attribs = array_merge(
 			array(
 				'type' => 'radio',
 				'id' => $this->formName."_".$fieldName,
-				'name' => $this->parameterName($fieldName),
-				'value' => $radioValue),
+				'name' => $nameAttribute,
+				'value' => $controlValue),
 			$attribs);
 			
 		return "<input ".$this->attributes($attribs)."/>\n".
 			"<label for='".$attribs['id']."'>".htmlentities($label).
 			"</label>\n";
+	}
+	
+	function radioButtonWithLabel($fieldName, $radioValue, $label,
+		$attribs = array())
+	{
+		return $this->booleanControlWithLabel($fieldName, $radioValue,
+			$label, FALSE,
+			array_merge(array('type' => 'radio'), $attribs));
 	}
 
 	function radioButtonSet($fieldName, $options, $legend = "",
@@ -403,6 +475,90 @@ class Aptivate_Form
 			$output
 			</fieldset>";
 		
+		return $output;
+	}
+
+	function checkBoxWithLabel($fieldName, $checkboxValue, $label,
+		$attribs = array())
+	{
+		return $this->booleanControlWithLabel($fieldName, $checkboxValue,
+			$label, TRUE,
+			array_merge(array('type' => 'checkbox'), $attribs));
+	}
+
+	/**
+	 * Returns the HTML for a fieldset of checkboxes, where the values
+	 * of the checkboxes equal their labels, instead of their indexes
+	 * into the $options array.
+	 */
+	function checkBoxSetIdentity($fieldName, $options, $legend = "",
+		$css_class = "", $as_list = FALSE)
+	{
+		$identity_values = array();
+		foreach ($options as $i => $value)
+		{
+			$identity_values[$value] = $value;
+		}
+		return $this->checkBoxSet($fieldName, $identity_values,
+			$legend, $css_class, $as_list);
+	}
+	
+	/**
+	 * Returns the HTML for a fieldset of checkboxes, where the values
+	 * of the checkboxes equal their indexes into the $options array,
+	 * and the labels are the values of the $options array.
+	 */
+	function checkBoxSet($fieldName, $options, $legend = "",
+		$css_class = "", $as_list = FALSE)
+	{
+		$output = "";
+
+		if ($legend)
+		{
+			$output .= "
+			<legend>$legend</legend>";
+		}
+		
+		if ($as_list)
+		{
+			$output .= "
+			<ul>";
+		}
+
+		foreach ($options as $i => $value)
+		{
+			if ($as_list)
+			{
+				if ($css_class)
+				{
+					$output .= "<li class='".$css_class."_".$i."'>\n";
+				}
+				else
+				{	
+					$output .="<li>\n";
+				}
+			}
+			$output .= $this->checkBoxWithLabel($fieldName,
+				$i, $value);
+			if ($as_list)
+			{
+				$output .= "</li>";
+			}
+		}
+	
+		if ($as_list)
+		{
+			$output .= "
+			</ul>";
+		}
+
+		$errors = $this->errorsOn($fieldName);
+		$output = $this->formatFieldWithErrors($output, $errors);
+		$output = "
+			<fieldset class='$css_class'>
+			$output
+			</fieldset>";
+	
 		return $output;
 	}
 };
@@ -951,46 +1107,6 @@ function attachFiles($field, $value, $delete_action, $read_only,
 	return $output;
 }
 
-function checkBoxWithLabel($tid, $name, $field_value, $checkbox_value,
-	$label, $attribs = array())
-{
-	$name_h  = htmlentities($name);
-	$value_h = htmlentities($checkbox_value);
-	$label_h = htmlentities($label);
-
-	if (substr($name, -2) == "[]")
-	{
-		$name = substr($name, 0, -2);
-	}
-
-	if ($_SERVER['REQUEST_METHOD'] == 'POST')
-	{
-		$values = $_POST[$name];
-	}
-	else if ($_GET[$name])
-	{
-		$values = $_GET[$name];
-	}
-	else
-	{
-		$values = explode(",", $field_value);
-	}
-
-	if (is_array($values) AND in_array((String)$checkbox_value, $values))
-	{
-		$attribs["checked"] = "checked";
-	}
-	else if (!is_array($values) AND $values)
-	{
-		$attribs["checked"] = "checked";
-	}
-
-	$output = 	"<input id='$tid' type='checkbox' value='$value_h' " .
-				"name='$name_h' " . attributes($attribs) . " />\n";
-	$output .= 	"<label for='$tid'>$label_h</label>\n";	
-	return $output;
-}
-
 function checkBoxWithoutOverride($tid, $name, $field_value, $checkbox_value,
 	$label, $attribs = array())
 {
@@ -1008,56 +1124,6 @@ function checkBoxWithoutOverride($tid, $name, $field_value, $checkbox_value,
 	$output = 	"<input id='$tid' type='checkbox' value='$value_h' " .
 				"name='$name_h" . "[]' " . attributes($attribs) . " />\n";
 	$output .= 	"<label for='$tid'>$label_h</label>\n";	
-	return $output;
-}
-
-function checkBoxSet($param_name, $active, $options, $legend = "",
-	$css_class = "", $as_list = FALSE)
-{
-	$output = "
-	<fieldset ". ($css_class ? "class='$css_class'" : "") ." >";
-	
-	if ($as_list)
-	{
-		$output .= "
-		<ul>
-			<li class='list_title'>$legend</li>";
-	}
-	else if ($legend)
-	{
-		$output .= "
-		<legend>$legend</legend>";
-	}
-
-	foreach ($options as $i => $value)
-	{
-		if ($as_list)
-		{
-			if ($css_class)
-			{
-				$output .= "<li class='".$css_class."_".$value."'>\n";
-			}
-			else
-			{	
-				$output .="<li>\n";
-			}
-		}
-		$output .= checkBoxWithLabel($param_name."_".$i, $param_name."[]",
-			$active, $value, $value);
-		if ($as_list)
-		{
-			$output .= "</li>";
-		}
-	}
-	
-	if ($as_list)
-	{
-		$output .= "
-		</ul>";
-	}
-	$output .="
-		</fieldset>";
-	
 	return $output;
 }
 
