@@ -170,7 +170,10 @@ class Aptivate_Request extends ArrayObject
 	
 	public function params()
 	{
-		return array_merge($this->get, $this->post);
+		// Note: we can't use array_merge here, because if the parameters
+		// happen to be numeric, array_merge will renumber them, which is
+		// not what we want at all!
+		return array_replace($this->get, $this->post);
 	}
 	
 	public function method()
