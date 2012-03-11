@@ -143,7 +143,14 @@ class Aptivate_Form
 			return $values[$fieldName];
 		}
 		
-		return $this->contextObject->$fieldName;
+		if (is_array($this->contextObject))
+		{
+			return $this->contextObject[$fieldName];
+		}
+		else
+		{
+			return $this->contextObject->$fieldName;
+		}
 	}
 	
 	function formatFieldWithErrors($fieldHtml, $errors)
@@ -380,7 +387,13 @@ class Aptivate_Form
 		
 		$fieldValue = $this->currentValue($fieldName);
 		
-		if ($multipleSelect and $fieldValue)
+		// multipleSelect is enabled for all checkBoxes, but the caller
+		// might know that there's only one checkbox for this field,
+		// and supply a true/false value for it instead of an array,
+		// and we need to check for that before blindly calling in_array
+		// on a non-array value.
+		
+		if ($multipleSelect and $fieldValue and is_array($fieldValue))
 		{
 			if (in_array($controlValue, $fieldValue))
 			{
