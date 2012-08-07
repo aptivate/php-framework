@@ -127,6 +127,8 @@ class Aptivate_Request extends ArrayObject
 					"start with a slash, not $script_path_within_app");
 			}
 			
+			$this->script_path_within_app = $script_path_within_app;
+			
 			$this->app_root = $this->remove_suffix(
 				$_SERVER['SCRIPT_NAME'],
 				$script_path_within_app, FALSE);
@@ -224,7 +226,8 @@ class Aptivate_Request extends ArrayObject
 	 */
 	public function offsetGet($index)
 	{
-		$req = new Aptivate_Request($this->method, '/'.$this->app_path,
+		$req = new Aptivate_Request($this->method,
+			$this->script_path_within_app, '/'.$this->app_path,
 			isset($this->get[$index])  ? $this->get[$index]  : array(),
 			isset($this->post[$index]) ? $this->post[$index] : array(),
 			$this->cookies);
