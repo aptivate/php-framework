@@ -110,6 +110,8 @@ class Aptivate_Request extends ArrayObject
 		mod_dir was involved in finding SCRIPT_NAME or not.
 		*/
 		
+		// print_r($_SERVER);
+		
 		if (isset($_SERVER['REQUEST_URI']))
 		{
 			if (!$script_path_within_app)
@@ -129,19 +131,41 @@ class Aptivate_Request extends ArrayObject
 			
 			$this->script_path_within_app = $script_path_within_app;
 			
-			$this->app_root = $this->remove_suffix(
-				$_SERVER['SCRIPT_NAME'],
-				$script_path_within_app, FALSE);
+			// SCRIPT_NAME is more reliable than PHP_SELF when
+			// path_info is being used, but unfortunately lighttpd
+			// doesn't set SCRIPT_NAME, so we have to fallback.
+			
+			if (isset($_SERVER['SCRIPT_NAME']))
+			{
+				$script_name = $_SERVER['SCRIPT_NAME'];
+			}
+			else
+			{
+				$script_name = $_SERVER['PHP_SELF'];
+			}
+			
+			$this->app_root = $this->remove_suffix($script_name,
+				substr($script_path_within_app, 1), FALSE);
 				
 			if (!$this->app_root)
 			{
 				throw new Exception("Aptivate_Request constructed ".
 					"with $script_path_within_app as the relative ".
 					"path, but it must be a suffix of ".
-					$_SERVER['SCRIPT_NAME']);
+					$script_name);
 			}
 			
-			if (isset($_SERVER['PATH_INFO']))
+			if (substr($this->app_root, strlen($this->app_root) - 1, 1)
+				!= '/')
+			{
+				throw new Exception("app_root must end with a slash ".
+					"for us to trim it: ".$this->app_root);
+			}
+			
+			$this->app_root = substr($this->app_root, 0,
+				strlen($this->app_root) - 1);
+			
+			if (isset($_SERVER['PATH_INFO']) and $_SERVER['PATH_INFO'])
 			{
 				$this->app_path = $_SERVER['PATH_INFO'];
 			}
@@ -149,6 +173,9 @@ class Aptivate_Request extends ArrayObject
 			{
 				$this->app_path = $script_path_within_app;
 			}
+			
+			// print "app_root = ".$this->app_root;
+			// print "app_path = ".$this->app_path;
 		}
 		elseif (isset($path))
 		{
