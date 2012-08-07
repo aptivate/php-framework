@@ -45,17 +45,27 @@ class Aptivate_PDOExtension extends PDO
 		preg_match_all("/:(\w+)/", $query, $matches);
 		foreach ($matches[1] as $name)
 		{
-			if (! array_key_exists($name, $attribs)) 
+			if (is_array($attribs))
 			{
-				throw new Exception("You haven't supplied a value for :$name in query: $query");
+				if (! array_key_exists($name, $attribs)) 
+				{
+					throw new Exception("You haven't supplied a value for :$name in query: $query");
+				}
+				$stmt->bindValue(":$name", $attribs[$name]);
+			}
+			else if (is_object($attribs))
+			{
+				# print("binding :$name => ".$attribs->$name."\n");
+				$stmt->bindValue(":$name", $attribs->$name);
+			}
+			else
+			{
+				throw new Exception("Binding values must be ".
+					"supplied in an array or object, not ".
+					get_class($attribs)." (".$attribs.")");
 			}
 		}
 
-		foreach ($attribs as $name => $value)
-		{
-			$stmt->bindValue(":$name", $value);
-		}
-		
 		if (!$stmt->execute())
 		{
 			$errorInfo = $stmt->errorInfo();
