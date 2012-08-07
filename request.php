@@ -70,7 +70,8 @@ class Aptivate_Request extends ArrayObject
 		return $alternative;
 	}
 	
-	public function __construct($method = null, $path = null,
+	public function __construct($method = null,
+		$script_path_within_app = null, $path = null,
 		array $getParams = null, array $postParams = null, 
 		array $cookies = null)
 	{
@@ -86,34 +87,66 @@ class Aptivate_Request extends ArrayObject
 		{
 			$this->method = null;
 		}
-
-		if (isset($_SERVER['REQUEST_URI']) and
-			isset($_SERVER['PATH_INFO']))
+		
+		/*
+		If the request led Apache to a .php file without any
+		PATH_INFO, for example accessing / or /ischool/ on the
+		server using mod_dir (DirectoryIndex), then Apache won't
+		set any PATH_INFO.
+		
+		In that case, we can't figure out where the app root is
+		without help. The caller must tell us, by providing either
+		$path (the full path, meaning there is no app root at all)
+		or $script_path_within_app (the path to that script relative
+		to the root) how to determine the app root.
+		
+		If a script knows that it's /foobar/index.php relative to
+		the app root, then it should pass that as
+		$script_path_within_app and we'll strip it from the 
+		REQUEST_URI to work out the real app root.
+		
+		In that case we use SCRIPT_NAME instead of REQUEST_URI,
+		as it's what the script knows, regardless of whether
+		mod_dir was involved in finding SCRIPT_NAME or not.
+		*/
+		
+		if (isset($_SERVER['REQUEST_URI']))
 		{
-			$path_without_query = $_SERVER['REQUEST_URI'];
-			
-			if (isset($_SERVER['QUERY_STRING']))
+			if (!$script_path_within_app)
 			{
-				$path_without_query = $this->remove_suffix(
-					$path_without_query, /* haystack */
-					'?'.$_SERVER['QUERY_STRING'], /* needle */
-					$path_without_query /* alternative */);
+				throw new Exception("Aptivate_Request must always ".
+					"be passed the caller's relative path within ".
+					"the app, to help locate the app root.");
+				// Even if it's not used when PATH_INFO is set;
+				// this helps to ensure that callers are correct.
+			}
+			
+			if (substr($script_path_within_app, 0, 1) != '/')
+			{
+				throw new Exception("script_path_within_app must ".
+					"start with a slash, not $script_path_within_app");
 			}
 			
 			$this->app_root = $this->remove_suffix(
-				$path_without_query, /* haystack */
-				$_SERVER['PATH_INFO'], /* needle */
-				null /* alternative, leaves $this->app_root unset */);
-			/*
-			print_r($_SERVER);
-			print("path without query = $path_without_query\n");
-			print("app root = $this->app_root\n");
-			*/
-		}
-
-		if (isset($this->app_root))
-		{
-			$this->app_path = $_SERVER['PATH_INFO'];
+				$_SERVER['SCRIPT_NAME'],
+				$script_path_within_app, FALSE);
+				
+			if (!$this->app_root)
+			{
+				throw new Exception("Aptivate_Request constructed ".
+					"with $script_path_within_app as the relative ".
+					"path, but it must be a suffix of ".
+					$_SERVER['SCRIPT_NAME']);
+			}
+			
+			if (isset($_SERVER['PATH_INFO']))
+			{
+				$this->app_path = $_SERVER['PATH_INFO'];
+			}
+			else
+			{
+				$this->app_path = $script_path_within_app;
+			}
 		}
 		elseif (isset($path))
 		{
@@ -128,17 +161,17 @@ class Aptivate_Request extends ArrayObject
 			$this->app_root = "";
 			$this->app_path = $path;
 		}
-		elseif (isset($_SERVER['REQUEST_URI']))
+		else
 		{
-			error_log("Aptivate_Request constructed with no ".
-				"PATH_INFO or explicit path");
+			throw new Exception("Aptivate_Request constructed with no ".
+				"REQUEST_URI or explicit path");
 			// leave unset to cause an error if used
 		}
 		
 		if (substr($this->app_path, 0, 1) != '/')
 		{
-			error_log("path must start with a slash for us to ".
-				"trim it: ".$this->app_path);
+			throw new Exception("path must start with a slash ".
+				"for us to trim it: ".$this->app_path);
 		}
 		
 		$this->app_path = substr($this->app_path, 1);
