@@ -143,27 +143,23 @@ class Aptivate_Request extends ArrayObject
 			{
 				$script_name = $_SERVER['PHP_SELF'];
 			}
-			else
+
+			// special case for command-line invocation: when
+			// SCRIPT_NAME equals SCRIPT_FILENAME, pretend that
+			// the app is installed in the (nonexistent) web root
+			if (isset($_SERVER['SCRIPT_FILENAME']) &&
+				$_SERVER['SCRIPT_NAME'] == $_SERVER['SCRIPT_FILENAME'])
 			{
-				// special case for command-line invocation
-				// where neither variable is set: assume that
-				// the app is installed in the web root for
-				// convenience.
-				$script_name = $script_path_within_app;
+				$script_name = "/$script_name";
 			}
 			
 			$this->app_root = $this->remove_suffix($script_name,
 				substr($script_path_within_app, 1), FALSE);
+
+			print_r($_SERVER);
+			print "$script_name $script_path_within_app ".$this->app_root;
 			
-			if ($script_name == $script_path_within_app)
-			{
-				// special case for command-line invocation
-				// where neither variable is set: assume that
-				// the app is installed in the web root for
-				// convenience.
-				$this->app_root = "/";
-			}
-			elseif (!$this->app_root)
+			if (!$this->app_root)
 			{
 				throw new Exception("Aptivate_Request constructed ".
 					"with $script_path_within_app as the relative ".
