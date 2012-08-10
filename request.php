@@ -156,9 +156,6 @@ class Aptivate_Request extends ArrayObject
 			$this->app_root = $this->remove_suffix($script_name,
 				substr($script_path_within_app, 1), FALSE);
 
-			print_r($_SERVER);
-			print "$script_name $script_path_within_app ".$this->app_root;
-			
 			if (!$this->app_root)
 			{
 				throw new Exception("Aptivate_Request constructed ".
