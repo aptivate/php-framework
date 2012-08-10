@@ -139,7 +139,7 @@ class Aptivate_Request extends ArrayObject
 			{
 				$script_name = $_SERVER['SCRIPT_NAME'];
 			}
-			elseif (isset($_SERVER['SCRIPT_NAME']))
+			elseif (isset($_SERVER['PHP_SELF']))
 			{
 				$script_name = $_SERVER['PHP_SELF'];
 			}
