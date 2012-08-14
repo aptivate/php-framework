@@ -71,7 +71,7 @@ class Aptivate_Request extends ArrayObject
 	}
 	
 	public function __construct($method = null,
-		$script_path_within_app = null, $path = null,
+		$script_path_within_app = null, $test_request_path = null,
 		array $getParams = null, array $postParams = null, 
 		array $cookies = null)
 	{
@@ -112,7 +112,21 @@ class Aptivate_Request extends ArrayObject
 		
 		// print_r($_SERVER);
 		
-		if (isset($_SERVER['REQUEST_URI']))
+		if (isset($test_request_path))
+		{
+			if (!is_string($test_request_path))
+			{
+				throw new Exception("test_request_path must be a string");
+			}
+
+			// No application root on manually-constructed
+			// (artificial) requests.
+			
+			$this->app_root = "";
+			$this->app_path = $test_request_path;
+			$this->script_path_within_app = "/nonexistent.php";
+		}
+		elseif (isset($_SERVER['REQUEST_URI']))
 		{
 			if (!$script_path_within_app)
 			{
@@ -186,23 +200,10 @@ class Aptivate_Request extends ArrayObject
 			// print "app_root = ".$this->app_root;
 			// print "app_path = ".$this->app_path;
 		}
-		elseif (isset($path))
-		{
-			if (!is_string($path))
-			{
-				throw new Exception("Path must be a string");
-			}
-
-			// No application root on manually-constructed
-			// (artificial) requests.
-			
-			$this->app_root = "";
-			$this->app_path = $path;
-		}
 		else
 		{
 			throw new Exception("Aptivate_Request constructed with no ".
-				"REQUEST_URI or explicit path");
+				"REQUEST_URI or test_request_path");
 			// leave unset to cause an error if used
 		}
 		
