@@ -59,8 +59,13 @@ class AptivateRequestTest extends PHPUnit_Framework_TestCase
 			// simulated command line: REQUEST_URI='/school/settings'
 			// php-cgi -f CodeIgniter/index.php
 			// (http://stackoverflow.com/a/11965479/648162)
-		
-			$_SERVER['REQUEST_URI'] = '/school/settings';
+			//
+			// CodeIgniter will die unless SCRIPT_NAME is set to
+			// something, and we configured it to use PATH_INFO
+			// to determine which controller to run, so we have
+			// to set that too.
+			$_SERVER['PATH_INFO'] = '/school/settings';
+			$_SERVER['SCRIPT_NAME'] = 'CodeIgniter/index.php';
 			$this->assertAptivateRequestSchoolSettings('/');
 		}
 		catch (Exception $e)

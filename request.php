@@ -60,11 +60,16 @@ class Aptivate_Request extends ArrayObject
 	private $get;
 	private $post;
 	private $cookies;
+
+	private static function is_suffix($path, $suffix)
+	{
+		return substr($path, strlen($path) - strlen($suffix)) == $suffix;
+	}
 	
 	private static function remove_suffix($path, $suffix, $alternative)
 	{
 		if (isset($path) and isset($suffix) and
-			substr($path, strlen($path) - strlen($suffix)) == $suffix)
+			static::is_suffix($path, $suffix))
 		{
 			return substr($path, 0, strlen($path) - strlen($suffix));
 		}
@@ -110,21 +115,38 @@ class Aptivate_Request extends ArrayObject
 		In that case we use SCRIPT_NAME instead of REQUEST_URI,
 		as it's what the script knows, regardless of whether
 		mod_dir was involved in finding SCRIPT_NAME or not.
-		*/
 
+		As a convenience when using php-cgi, which doesn't
+		set SCRIPT_NAME or SCRIPT_FILENAME and sets PHP_SELF
+		to just the PATH_INFO (or empty string if there is
+		none), you can omit REQUEST_URI and it will be assumed
+		to be set to $script_path_within_app.
+		*/
+		
 		if (isset($_SERVER['REQUEST_URI']))
 		{
 			$request_uri = $_SERVER['REQUEST_URI'];
 		}
-		elseif (!isset($_SERVER['SCRIPT_NAME']) &&
-			isset($_SERVER['PHP_SELF']) &&
-			$_SERVER['PHP_SELF'] == '')
+		else
 		{
-			// As a convenience when using php-cgi, which doesn't
-			// set SCRIPT_NAME or SCRIPT_FILENAME and sets PHP_SELF
-			// to the empty string, you can omit REQUEST_URI and it
-			// will be assumed to be set to $script_path_within_app.
 			$request_uri = $script_path_within_app;
+		}
+
+		// SCRIPT_NAME will start with '/' if set by a web server,
+		// and usually not if run from the command line. In which
+		// case, ignore the one provided by the php/php-cgi binary
+		// and use the one provided by the .php file instead, for
+		// convenience to the user running the script from the
+		// command line.
+		
+		if (isset($_SERVER['SCRIPT_NAME']) and
+			substr($_SERVER['SCRIPT_NAME'], 0, 1) == '/')
+		{
+			$script_name = $_SERVER['SCRIPT_NAME'];
+		}
+		else
+		{
+			$script_name = $script_path_within_app;
 		}
 
 		if (!isset($test_request_path) && !$script_path_within_app)
@@ -132,6 +154,7 @@ class Aptivate_Request extends ArrayObject
 			throw new Exception("Aptivate_Request must always ".
 				"be passed the caller's relative path within ".
 				"the app, to help locate the app root.");
+			
 			// Even if it's not used when PATH_INFO is set;
 			// this helps to ensure that callers are correct.
 			//
@@ -154,7 +177,7 @@ class Aptivate_Request extends ArrayObject
 			$this->app_path = $test_request_path;
 			$this->script_path_within_app = "/nonexistent.php";
 		}
-		elseif (isset($request_uri))
+		else
 		{
 			if (substr($script_path_within_app, 0, 1) != '/')
 			{
@@ -164,22 +187,15 @@ class Aptivate_Request extends ArrayObject
 			
 			$this->script_path_within_app = $script_path_within_app;
 			
-			if ($_SERVER['PHP_SELF'] == '' ||
-				$_SERVER['PHP_SELF'] == $_SERVER['SCRIPT_FILENAME'])
+			if (!$this->is_suffix($script_name,
+				substr($script_path_within_app, 1)))
 			{
-				// special case for command-line invocation using
-				// php (which sets PHP_SELF == SCRIPT_FILENAME) or
-				// php-cgi (which set PHP_SELF == ''): pretend that
-				// the app is installed in the (nonexistent) web root,
-				// so $script_name has no prefix before
-				// $script_path_within_app.
-				$script_name = $script_path_within_app;
+				throw new Exception("Aptivate_Request constructed ".
+					"with $script_path_within_app as the relative ".
+					"path, but it must be a suffix of ".
+					$script_name);
 			}
-			else
-			{
-				$script_name = $_SERVER['SCRIPT_NAME'];
-			}
-			
+						
 			$this->app_root = $this->remove_suffix($script_name,
 				substr($script_path_within_app, 1), FALSE);
 			
@@ -188,14 +204,6 @@ class Aptivate_Request extends ArrayObject
 			print "script_path_within_app = $script_path_within_app\n";
 			print "app_root = ".$this->app_root."\n";
 			*/
-			
-			if (!$this->app_root)
-			{
-				throw new Exception("Aptivate_Request constructed ".
-					"with $script_path_within_app as the relative ".
-					"path, but it must be a suffix of ".
-					$script_name);
-			}
 			
 			if (substr($this->app_root, strlen($this->app_root) - 1, 1)
 				!= '/')
@@ -222,9 +230,7 @@ class Aptivate_Request extends ArrayObject
 				{
 					$query_string = "?".$_SERVER['QUERY_STRING'];
 					
-					if (substr($request_uri,
-						strlen($request_uri) - strlen($query_string),
-						strlen($query_string)) != $query_string)
+					if (!$this->is_suffix($request_uri, $query_string))
 					{
 						throw new Exception("The REQUEST_URI ($request_uri) ".
 							"must end with the query string ($query_string)");
@@ -243,12 +249,6 @@ class Aptivate_Request extends ArrayObject
 			
 			// print "app_root = ".$this->app_root;
 			// print "app_path = ".$this->app_path;
-		}
-		else
-		{
-			throw new Exception("Aptivate_Request constructed with no ".
-				"REQUEST_URI or test_request_path");
-			// leave unset to cause an error if used
 		}
 
 		if (substr($this->app_root, 0, 1) != '/')
