@@ -203,7 +203,7 @@ class Aptivate_Request extends ArrayObject
 				
 				if (isset($_SERVER['QUERY_STRING']))
 				{
-					$query_string = $_SERVER['QUERY_STRING'];
+					$query_string = "?".$_SERVER['QUERY_STRING'];
 					
 					if (substr($request_uri,
 						strlen($request_uri) - strlen($query_string),

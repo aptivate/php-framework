@@ -133,7 +133,7 @@ class AptivateRequestTest extends PHPUnit_Framework_TestCase
 			// with Alias /ischool /home/installuser/Dropbox/projects/ischool/website/web
 		
 			$_SERVER['REQUEST_URI'] = '/ischool/?foo=bar';
-			$_SERVER['QUERY_STRING'] = '?foo=bar';
+			$_SERVER['QUERY_STRING'] = 'foo=bar';
 			$_SERVER['REQUEST_METHOD'] = 'GET';
 			$_SERVER['SCRIPT_NAME'] = '/ischool/index.php';
 			$_SERVER['SCRIPT_FILENAME'] = '/home/installuser/Dropbox/projects/ischool/website/web/index.php';
@@ -198,7 +198,7 @@ class AptivateRequestTest extends PHPUnit_Framework_TestCase
 			// with Alias /ischool /home/installuser/Dropbox/projects/ischool/website/web
 		
 			$_SERVER['REQUEST_URI'] = '/?foo=bar';
-			$_SERVER['QUERY_STRING'] = '?foo=bar';
+			$_SERVER['QUERY_STRING'] = 'foo=bar';
 			$_SERVER['REQUEST_METHOD'] = 'GET';
 			$_SERVER['SCRIPT_NAME'] = '/index.php';
 			$_SERVER['SCRIPT_FILENAME'] = '/media/hdb1/ischool/ischool.zm/staging_html/index.php';
