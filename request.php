@@ -51,6 +51,8 @@ class Aptivate_Request extends ArrayObject
 	/**
 	 * app_root DOES include a leading slash, useful for absolute paths
 	 * when there is no <base> element, or it's unreliable, e.g. IE CSS.
+	 * It also includes a trailing slash, otherwise "/" would be
+	 * inconsistent or unsupported.
 	 */
 	public $app_root;
 	
@@ -110,8 +112,6 @@ class Aptivate_Request extends ArrayObject
 		mod_dir was involved in finding SCRIPT_NAME or not.
 		*/
 		
-		// print_r($_SERVER);
-		
 		if (isset($test_request_path))
 		{
 			if (!is_string($test_request_path))
@@ -122,7 +122,7 @@ class Aptivate_Request extends ArrayObject
 			// No application root on manually-constructed
 			// (artificial) requests.
 			
-			$this->app_root = "";
+			$this->app_root = "/";
 			$this->app_path = $test_request_path;
 			$this->script_path_within_app = "/nonexistent.php";
 		}
@@ -145,31 +145,31 @@ class Aptivate_Request extends ArrayObject
 			
 			$this->script_path_within_app = $script_path_within_app;
 			
-			// SCRIPT_NAME is more reliable than PHP_SELF when
-			// path_info is being used, but unfortunately lighttpd
-			// doesn't set SCRIPT_NAME, so we have to fallback.
-			
-			if (isset($_SERVER['SCRIPT_NAME']))
+			if ($_SERVER['PHP_SELF'] == '' ||
+				$_SERVER['PHP_SELF'] == $_SERVER['SCRIPT_FILENAME'])
+			{
+				// special case for command-line invocation using
+				// php (which sets PHP_SELF == SCRIPT_FILENAME) or
+				// php-cgi (which set PHP_SELF == ''): pretend that
+				// the app is installed in the (nonexistent) web root,
+				// so $script_name has no prefix before
+				// $script_path_within_app.
+				$script_name = $script_path_within_app;
+			}
+			else
 			{
 				$script_name = $_SERVER['SCRIPT_NAME'];
-			}
-			elseif (isset($_SERVER['PHP_SELF']))
-			{
-				$script_name = $_SERVER['PHP_SELF'];
-			}
-
-			// special case for command-line invocation: when
-			// SCRIPT_NAME equals SCRIPT_FILENAME, pretend that
-			// the app is installed in the (nonexistent) web root
-			if (isset($_SERVER['SCRIPT_FILENAME']) &&
-				$_SERVER['SCRIPT_NAME'] == $_SERVER['SCRIPT_FILENAME'])
-			{
-				$script_name = "/$script_name";
 			}
 			
 			$this->app_root = $this->remove_suffix($script_name,
 				substr($script_path_within_app, 1), FALSE);
-
+			
+			/*
+			print "script_name = $script_name\n";
+			print "script_path_within_app = $script_path_within_app\n";
+			print "app_root = ".$this->app_root."\n";
+			*/
+			
 			if (!$this->app_root)
 			{
 				throw new Exception("Aptivate_Request constructed ".
@@ -182,11 +182,8 @@ class Aptivate_Request extends ArrayObject
 				!= '/')
 			{
 				throw new Exception("app_root must end with a slash ".
-					"for us to trim it: ".$this->app_root);
+					"(".$this->app_root.")");
 			}
-			
-			$this->app_root = substr($this->app_root, 0,
-				strlen($this->app_root) - 1);
 			
 			if (isset($_SERVER['PATH_INFO']) and $_SERVER['PATH_INFO'])
 			{
@@ -194,7 +191,20 @@ class Aptivate_Request extends ArrayObject
 			}
 			else
 			{
-				$this->app_path = $script_path_within_app;
+				if (substr($_SERVER['REQUEST_URI'], 0,
+					strlen($this->app_root)) != $this->app_root)
+				{
+					throw new Exception("The computed app_root is ".
+						"not a prefix of REQUEST_URI (".
+						$_SERVER['REQUEST_URI'].") but ".
+						$this->app_root);
+				}
+				
+				$this->app_path = substr($_SERVER['REQUEST_URI'],
+					strlen($this->app_root));
+					
+				// prepend a slash which will be trimmed off below
+				$this->app_path = "/".$this->app_path;
 			}
 			
 			// print "app_root = ".$this->app_root;
@@ -206,11 +216,17 @@ class Aptivate_Request extends ArrayObject
 				"REQUEST_URI or test_request_path");
 			// leave unset to cause an error if used
 		}
+
+		if (substr($this->app_root, 0, 1) != '/')
+		{
+			throw new Exception("Computed app_root must start with ".
+				"a slash (".$this->app_root.")");
+		}
 		
 		if (substr($this->app_path, 0, 1) != '/')
 		{
 			throw new Exception("path must start with a slash ".
-				"for us to trim it: ".$this->app_path);
+				"for us to trim it (".$this->app_path.")");
 		}
 		
 		$this->app_path = substr($this->app_path, 1);
