@@ -111,6 +111,34 @@ class Aptivate_Request extends ArrayObject
 		as it's what the script knows, regardless of whether
 		mod_dir was involved in finding SCRIPT_NAME or not.
 		*/
+
+		if (isset($_SERVER['REQUEST_URI']))
+		{
+			$request_uri = $_SERVER['REQUEST_URI'];
+		}
+		elseif (!isset($_SERVER['SCRIPT_NAME']) &&
+			isset($_SERVER['PHP_SELF']) &&
+			$_SERVER['PHP_SELF'] == '')
+		{
+			// As a convenience when using php-cgi, which doesn't
+			// set SCRIPT_NAME or SCRIPT_FILENAME and sets PHP_SELF
+			// to the empty string, you can omit REQUEST_URI and it
+			// will be assumed to be set to $script_path_within_app.
+			$request_uri = $script_path_within_app;
+		}
+
+		if (!isset($test_request_path) && !$script_path_within_app)
+		{
+			throw new Exception("Aptivate_Request must always ".
+				"be passed the caller's relative path within ".
+				"the app, to help locate the app root.");
+			// Even if it's not used when PATH_INFO is set;
+			// this helps to ensure that callers are correct.
+			//
+			// But you can omit this when constructing fake requests
+			// in unit tests, as you have to supply the app_path
+			// and we pretend that the app_root is '/'.
+		}
 		
 		if (isset($test_request_path))
 		{
@@ -126,17 +154,8 @@ class Aptivate_Request extends ArrayObject
 			$this->app_path = $test_request_path;
 			$this->script_path_within_app = "/nonexistent.php";
 		}
-		elseif (isset($_SERVER['REQUEST_URI']))
+		elseif (isset($request_uri))
 		{
-			if (!$script_path_within_app)
-			{
-				throw new Exception("Aptivate_Request must always ".
-					"be passed the caller's relative path within ".
-					"the app, to help locate the app root.");
-				// Even if it's not used when PATH_INFO is set;
-				// this helps to ensure that callers are correct.
-			}
-			
 			if (substr($script_path_within_app, 0, 1) != '/')
 			{
 				throw new Exception("script_path_within_app must ".
@@ -191,8 +210,6 @@ class Aptivate_Request extends ArrayObject
 			}
 			else
 			{
-				$request_uri = $_SERVER['REQUEST_URI'];
-
 				if (substr($request_uri, 0, strlen($this->app_root))
 					!= $this->app_root)
 				{

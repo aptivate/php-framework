@@ -26,11 +26,14 @@ class AptivateRequestTest extends PHPUnit_Framework_TestCase
 	}
 
 	/**
-	 * Using php-cgi requires you to set REQUEST_URI in the
-	 * environment, doesn't set SCRIPT_NAME or SCRIPT_FILENAME,
-	 * and sets PHP_SELF but leaves it empty.
+	 * php-cgi doesn't set SCRIPT_NAME or SCRIPT_FILENAME, and sets
+	 * PHP_SELF to an empty string. CodeIgniter can't tell what
+	 * controller you want unless you set REQUEST_URI in the
+	 * environment, but otherwise you can leave it unset.
+	 * Aptivate_Request will pretend that you set it to the
+	 * $script_path_within_app set by whoever created it.
 	 */
-	public function testAptivateRequestUsingCommandLinePhpCgi()
+	public function testCommandLinePhpCgiEnvironment()
 	{
 		$old_server = $_SERVER;
 		
@@ -40,16 +43,17 @@ class AptivateRequestTest extends PHPUnit_Framework_TestCase
 			// REQUEST_URI='/' php-cgi -f index.php
 			// (http://stackoverflow.com/a/11965479/648162)
 		
-			$_SERVER['REQUEST_URI'] = '/';
+			unset($_SERVER['REQUEST_URI']);
 			unset($_SERVER['QUERY_STRING']);
 			unset($_SERVER['REQUEST_METHOD']);
 			unset($_SERVER['SCRIPT_NAME']);
 			unset($_SERVER['SCRIPT_FILENAME']);
 			unset($_SERVER['PATH_INFO']);
 			$_SERVER['PHP_SELF'] = '';
-			$this->assertAptivateRequestRoot('/');
+			$this->assertAptivateRequestPhpFile('/', 'index.php');
 
-			$_SERVER['REQUEST_URI'] = '/auth.php';
+			// the only difference is the $script_path_within_app
+			// passed to new Aptivate_Request().
 			$this->assertAptivateRequestPhpFile('/', 'auth.php');
 			
 			// simulated command line: REQUEST_URI='/school/settings'
@@ -57,7 +61,6 @@ class AptivateRequestTest extends PHPUnit_Framework_TestCase
 			// (http://stackoverflow.com/a/11965479/648162)
 		
 			$_SERVER['REQUEST_URI'] = '/school/settings';
-			$_SERVER['PHP_SELF'] = '';
 			$this->assertAptivateRequestSchoolSettings('/');
 		}
 		catch (Exception $e)
@@ -73,7 +76,7 @@ class AptivateRequestTest extends PHPUnit_Framework_TestCase
 	 * Using php (not php-cgi) sets PHP_SELF == SCRIPT_NAME ==
 	 * SCRIPT_FILENAME, and doesn't set PATH_INFO at all.
 	 */
-	public function testAptivateRequestUsingCommandLinePhp()
+	public function testCommandLinePhpEnvironment()
 	{
 		$old_server = $_SERVER;
 		
@@ -123,7 +126,7 @@ class AptivateRequestTest extends PHPUnit_Framework_TestCase
 	 * /ischool/index.php/foo/bar (when PATH_INFO is '/foo/bar'
 	 * for http://localhost/ischool/foo/bar.
 	 */
-	public function testAptivateRequestUsingApacheModPhp()
+	public function testApacheModPhpEnvironment()
 	{
 		$old_server = $_SERVER;
 		
@@ -183,12 +186,8 @@ class AptivateRequestTest extends PHPUnit_Framework_TestCase
 
 	/**
 	 * Lighttpd sets PATH_INFO but leaves it empty if there isn't any.
-	 * 
-	 * Apache sets PHP_SELF = SCRIPT_NAME + PATH_INFO, e.g.
-	 * /ischool/index.php/foo/bar (when PATH_INFO is '/foo/bar'
-	 * for http://localhost/ischool/foo/bar.
 	 */
-	public function testAptivateRequestUsingLighttpdFastcgiPhi()
+	public function testLighttpdFastcgiPhpEnvironment()
 	{
 		$old_server = $_SERVER;
 		
@@ -244,6 +243,14 @@ class AptivateRequestTest extends PHPUnit_Framework_TestCase
 		}
 		
 		$_SERVER = $old_server;
+	}
+	
+	public function testFakeRequestForTestsEnvironment()
+	{
+		$req = new Aptivate_Request('GET', '/fake-test-script.php',
+			'/fake-test-url');
+		$this->assertEquals('/', $req->app_root);
+		$this->assertEquals('fake-test-url', $req->app_path);
 	}
 }
 ?>
