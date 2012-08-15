@@ -191,16 +191,33 @@ class Aptivate_Request extends ArrayObject
 			}
 			else
 			{
-				if (substr($_SERVER['REQUEST_URI'], 0,
-					strlen($this->app_root)) != $this->app_root)
+				$request_uri = $_SERVER['REQUEST_URI'];
+
+				if (substr($request_uri, 0, strlen($this->app_root))
+					!= $this->app_root)
 				{
-					throw new Exception("The computed app_root is ".
-						"not a prefix of REQUEST_URI (".
-						$_SERVER['REQUEST_URI'].") but ".
-						$this->app_root);
+					throw new Exception("The computed app_root must ".
+						"be a prefix of REQUEST_URI ($request_uri), ".
+						"not ".$this->app_root);
 				}
 				
-				$this->app_path = substr($_SERVER['REQUEST_URI'],
+				if (isset($_SERVER['QUERY_STRING']))
+				{
+					$query_string = $_SERVER['QUERY_STRING'];
+					
+					if (substr($request_uri,
+						strlen($request_uri) - strlen($query_string),
+						strlen($query_string)) != $query_string)
+					{
+						throw new Exception("The REQUEST_URI ($request_uri) ".
+							"must end with the query string ($query_string)");
+					}
+				
+					$request_uri = substr($request_uri, 0,
+						strlen($request_uri) - strlen($query_string));
+				}
+				
+				$this->app_path = substr($request_uri,
 					strlen($this->app_root));
 					
 				// prepend a slash which will be trimmed off below

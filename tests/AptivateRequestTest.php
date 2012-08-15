@@ -1,5 +1,5 @@
 <?php
-require_once('../request.php');
+require_once(dirname(__FILE__).'/../request.php');
 
 class AptivateRequestTest extends PHPUnit_Framework_TestCase
 {
@@ -41,6 +41,7 @@ class AptivateRequestTest extends PHPUnit_Framework_TestCase
 			// (http://stackoverflow.com/a/11965479/648162)
 		
 			$_SERVER['REQUEST_URI'] = '/';
+			unset($_SERVER['QUERY_STRING']);
 			unset($_SERVER['REQUEST_METHOD']);
 			unset($_SERVER['SCRIPT_NAME']);
 			unset($_SERVER['SCRIPT_FILENAME']);
@@ -56,10 +57,6 @@ class AptivateRequestTest extends PHPUnit_Framework_TestCase
 			// (http://stackoverflow.com/a/11965479/648162)
 		
 			$_SERVER['REQUEST_URI'] = '/school/settings';
-			unset($_SERVER['REQUEST_METHOD']);
-			unset($_SERVER['SCRIPT_NAME']);
-			unset($_SERVER['SCRIPT_FILENAME']);
-			unset($_SERVER['PATH_INFO']);
 			$_SERVER['PHP_SELF'] = '';
 			$this->assertAptivateRequestSchoolSettings('/');
 		}
@@ -86,6 +83,7 @@ class AptivateRequestTest extends PHPUnit_Framework_TestCase
 			// REQUEST_URI='/' php index.php
 		
 			$_SERVER['REQUEST_URI'] = '/';
+			unset($_SERVER['QUERY_STRING']);
 			unset($_SERVER['REQUEST_METHOD']);
 			$_SERVER['SCRIPT_NAME'] = 'index.php';
 			$_SERVER['SCRIPT_FILENAME'] = $_SERVER['SCRIPT_NAME'];
@@ -131,10 +129,11 @@ class AptivateRequestTest extends PHPUnit_Framework_TestCase
 		
 		try
 		{
-			// Request for http://localhost/ischool/
+			// Request for http://localhost/ischool/?foo=bar
 			// with Alias /ischool /home/installuser/Dropbox/projects/ischool/website/web
 		
-			$_SERVER['REQUEST_URI'] = '/ischool/';
+			$_SERVER['REQUEST_URI'] = '/ischool/?foo=bar';
+			$_SERVER['QUERY_STRING'] = '?foo=bar';
 			$_SERVER['REQUEST_METHOD'] = 'GET';
 			$_SERVER['SCRIPT_NAME'] = '/ischool/index.php';
 			$_SERVER['SCRIPT_FILENAME'] = '/home/installuser/Dropbox/projects/ischool/website/web/index.php';
@@ -142,7 +141,7 @@ class AptivateRequestTest extends PHPUnit_Framework_TestCase
 			$_SERVER['PHP_SELF'] = $_SERVER['SCRIPT_NAME'];
 			$this->assertAptivateRequestRoot('/ischool/');
 
-			// Request for http://localhost/ischool/index.php
+			// Request for http://localhost/ischool/index.php?foo=bar
 			//
 			// For anything other than index.php, we must keep the
 			// filename in the app_path, otherwise local links
@@ -152,20 +151,20 @@ class AptivateRequestTest extends PHPUnit_Framework_TestCase
 			// than treating it as a special case on the assumption
 			// that the web server is configured with
 			// "DirectoryIndex index.php" (which it might not be).
-			$_SERVER['REQUEST_URI'] = '/ischool/index.php';
+			$_SERVER['REQUEST_URI'] = '/ischool/index.php?foo=bar';
 			$this->assertAptivateRequestPhpFile('/ischool/', 'index.php');
 
-			// Request for http://localhost/ischool/auth.php
+			// Request for http://localhost/ischool/auth.php?foo=bar
 			// Make sure it works for other directly-accessed
 			// PHP files as well (not using mod_rewrite).
-			$_SERVER['REQUEST_URI'] = '/ischool/auth.php';
+			$_SERVER['REQUEST_URI'] = '/ischool/auth.php?foo=bar';
 			$_SERVER['SCRIPT_NAME'] = '/ischool/auth.php';
 			$_SERVER['SCRIPT_FILENAME'] = '/home/installuser/Dropbox/projects/ischool/website/web/auth.php';
 			$_SERVER['PHP_SELF'] = $_SERVER['SCRIPT_NAME'];
 			$this->assertAptivateRequestPhpFile('/ischool/', 'auth.php');
 
-			// Request for http://localhost/ischool/school/settings
-			$_SERVER['REQUEST_URI'] = '/ischool/school/settings';
+			// Request for http://localhost/ischool/school/settings?foo=bar
+			$_SERVER['REQUEST_URI'] = '/ischool/school/settings?foo=bar';
 			$_SERVER['SCRIPT_NAME'] = '/ischool/CodeIgniter/index.php';
 			$_SERVER['SCRIPT_FILENAME'] = '/home/installuser/Dropbox/projects/ischool/website/web/CodeIgniter/index.php';
 			$_SERVER['PATH_INFO'] = '/school/settings';
@@ -195,10 +194,11 @@ class AptivateRequestTest extends PHPUnit_Framework_TestCase
 		
 		try
 		{
-			// Request for http://staging.ischool.zm/
+			// Request for http://staging.ischool.zm/?foo=bar
 			// with Alias /ischool /home/installuser/Dropbox/projects/ischool/website/web
 		
-			$_SERVER['REQUEST_URI'] = '/';
+			$_SERVER['REQUEST_URI'] = '/?foo=bar';
+			$_SERVER['QUERY_STRING'] = '?foo=bar';
 			$_SERVER['REQUEST_METHOD'] = 'GET';
 			$_SERVER['SCRIPT_NAME'] = '/index.php';
 			$_SERVER['SCRIPT_FILENAME'] = '/media/hdb1/ischool/ischool.zm/staging_html/index.php';
@@ -206,7 +206,7 @@ class AptivateRequestTest extends PHPUnit_Framework_TestCase
 			$_SERVER['PHP_SELF'] = $_SERVER['SCRIPT_NAME'];
 			$this->assertAptivateRequestRoot('/');
 
-			// Request for http://staging.ischool.zm/index.php
+			// Request for http://staging.ischool.zm/index.php?foo=bar
 			//
 			// For anything other than index.php, we must keep the
 			// filename in the app_path, otherwise local links
@@ -216,20 +216,20 @@ class AptivateRequestTest extends PHPUnit_Framework_TestCase
 			// than treating it as a special case on the assumption
 			// that the web server is configured with
 			// "DirectoryIndex index.php" (which it might not be).
-			$_SERVER['REQUEST_URI'] = '/index.php';
+			$_SERVER['REQUEST_URI'] = '/index.php?foo=bar';
 			$this->assertAptivateRequestPhpFile('/', 'index.php');
 
-			// Request for http://staging.ischool.zm/auth.php
+			// Request for http://staging.ischool.zm/auth.php?foo=bar
 			// Make sure it works for other directly-accessed
 			// PHP files as well (not using mod_rewrite).
-			$_SERVER['REQUEST_URI'] = '/auth.php';
+			$_SERVER['REQUEST_URI'] = '/auth.php?foo=bar';
 			$_SERVER['SCRIPT_NAME'] = '/auth.php';
 			$_SERVER['SCRIPT_FILENAME'] = '/media/hdb1/ischool/ischool.zm/staging_html/auth.php';
 			$_SERVER['PHP_SELF'] = $_SERVER['SCRIPT_NAME'];
 			$this->assertAptivateRequestPhpFile('/', 'auth.php');
 
-			// Request for http://staging.ischool.zm/school/settings
-			$_SERVER['REQUEST_URI'] = '/school/settings';
+			// Request for http://staging.ischool.zm/school/settings?foo=bar
+			$_SERVER['REQUEST_URI'] = '/school/settings?foo=bar';
 			$_SERVER['SCRIPT_NAME'] = '/CodeIgniter/index.php';
 			$_SERVER['SCRIPT_FILENAME'] = '/media/hdb1/ischool/ischool.zm/staging_html/CodeIgniter/index.php';
 			$_SERVER['PATH_INFO'] = '/school/settings';
