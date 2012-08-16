@@ -127,6 +127,9 @@ class AptivateRequestTest extends PHPUnit_Framework_TestCase
 	}
 
 	/**
+	 * Test as configured on my laptop development environment,
+	 * with Alias /ischool /home/installuser/Dropbox/projects/ischool/website/web.
+	 * 
 	 * Apache sets PHP_SELF = SCRIPT_NAME + PATH_INFO, e.g.
 	 * /ischool/index.php/foo/bar (when PATH_INFO is '/foo/bar'
 	 * for http://localhost/ischool/foo/bar.
@@ -137,16 +140,22 @@ class AptivateRequestTest extends PHPUnit_Framework_TestCase
 		
 		try
 		{
-			// Request for http://localhost/ischool/?foo=bar
-			// with Alias /ischool /home/installuser/Dropbox/projects/ischool/website/web
+			// Request for http://localhost/ischool/
 		
-			$_SERVER['REQUEST_URI'] = '/ischool/?foo=bar';
-			$_SERVER['QUERY_STRING'] = 'foo=bar';
+			$_SERVER['REQUEST_URI'] = '/ischool/';
+			$_SERVER['QUERY_STRING'] = '';
 			$_SERVER['REQUEST_METHOD'] = 'GET';
 			$_SERVER['SCRIPT_NAME'] = '/ischool/index.php';
 			$_SERVER['SCRIPT_FILENAME'] = '/home/installuser/Dropbox/projects/ischool/website/web/index.php';
 			unset($_SERVER['PATH_INFO']);
 			$_SERVER['PHP_SELF'] = $_SERVER['SCRIPT_NAME'];
+			$this->assertAptivateRequestRoot('/ischool/');
+
+			// Request for http://localhost/ischool/?foo=bar
+			// with Alias /ischool /home/installuser/Dropbox/projects/ischool/website/web
+		
+			$_SERVER['REQUEST_URI'] = '/ischool/?foo=bar';
+			$_SERVER['QUERY_STRING'] = 'foo=bar';
 			$this->assertAptivateRequestRoot('/ischool/');
 
 			// Request for http://localhost/ischool/index.php?foo=bar
@@ -159,7 +168,13 @@ class AptivateRequestTest extends PHPUnit_Framework_TestCase
 			// than treating it as a special case on the assumption
 			// that the web server is configured with
 			// "DirectoryIndex index.php" (which it might not be).
+			$_SERVER['REQUEST_URI'] = '/ischool/index.php';
+			$_SERVER['QUERY_STRING'] = '';
+			$this->assertAptivateRequestPhpFile('/ischool/', 'index.php');
+
+			// Request for http://localhost/ischool/index.php?foo=bar
 			$_SERVER['REQUEST_URI'] = '/ischool/index.php?foo=bar';
+			$_SERVER['QUERY_STRING'] = 'foo=bar';
 			$this->assertAptivateRequestPhpFile('/ischool/', 'index.php');
 
 			// Request for http://localhost/ischool/auth.php?foo=bar
@@ -171,13 +186,19 @@ class AptivateRequestTest extends PHPUnit_Framework_TestCase
 			$_SERVER['PHP_SELF'] = $_SERVER['SCRIPT_NAME'];
 			$this->assertAptivateRequestPhpFile('/ischool/', 'auth.php');
 
-			// Request for http://localhost/ischool/school/settings?foo=bar
-			$_SERVER['REQUEST_URI'] = '/ischool/school/settings?foo=bar';
+			// Request for http://localhost/ischool/school/settings
+			$_SERVER['REQUEST_URI'] = '/ischool/school/settings';
+			$_SERVER['QUERY_STRING'] = '';
 			$_SERVER['SCRIPT_NAME'] = '/ischool/CodeIgniter/index.php';
 			$_SERVER['SCRIPT_FILENAME'] = '/home/installuser/Dropbox/projects/ischool/website/web/CodeIgniter/index.php';
 			$_SERVER['PATH_INFO'] = '/school/settings';
 			$_SERVER['PHP_SELF'] = $_SERVER['SCRIPT_NAME'] .
 				$_SERVER['PATH_INFO'];
+			$this->assertAptivateRequestSchoolSettings('/ischool/');
+
+			// Request for http://localhost/ischool/school/settings?foo=bar
+			$_SERVER['REQUEST_URI'] = '/ischool/school/settings?foo=bar';
+			$_SERVER['QUERY_STRING'] = 'foo=bar';
 			$this->assertAptivateRequestSchoolSettings('/ischool/');
 		}
 		catch (Exception $e)
@@ -198,9 +219,12 @@ class AptivateRequestTest extends PHPUnit_Framework_TestCase
 		
 		try
 		{
+			// Request for http://staging.ischool.zm/
+			$_SERVER['REQUEST_URI'] = '/';
+			$_SERVER['QUERY_STRING'] = '';
+			$this->assertAptivateRequestRoot('/');
+
 			// Request for http://staging.ischool.zm/?foo=bar
-			// with Alias /ischool /home/installuser/Dropbox/projects/ischool/website/web
-		
 			$_SERVER['REQUEST_URI'] = '/?foo=bar';
 			$_SERVER['QUERY_STRING'] = 'foo=bar';
 			$_SERVER['REQUEST_METHOD'] = 'GET';
@@ -220,7 +244,13 @@ class AptivateRequestTest extends PHPUnit_Framework_TestCase
 			// than treating it as a special case on the assumption
 			// that the web server is configured with
 			// "DirectoryIndex index.php" (which it might not be).
+			$_SERVER['REQUEST_URI'] = '/index.php';
+			$_SERVER['QUERY_STRING'] = '';
+			$this->assertAptivateRequestPhpFile('/', 'index.php');
+
+			// Request for http://staging.ischool.zm/index.php?foo=bar
 			$_SERVER['REQUEST_URI'] = '/index.php?foo=bar';
+			$_SERVER['QUERY_STRING'] = 'foo=bar';
 			$this->assertAptivateRequestPhpFile('/', 'index.php');
 
 			// Request for http://staging.ischool.zm/auth.php?foo=bar
@@ -232,13 +262,19 @@ class AptivateRequestTest extends PHPUnit_Framework_TestCase
 			$_SERVER['PHP_SELF'] = $_SERVER['SCRIPT_NAME'];
 			$this->assertAptivateRequestPhpFile('/', 'auth.php');
 
-			// Request for http://staging.ischool.zm/school/settings?foo=bar
-			$_SERVER['REQUEST_URI'] = '/school/settings?foo=bar';
+			// Request for http://staging.ischool.zm/school/settings
+			$_SERVER['REQUEST_URI'] = '/school/settings';
+			$_SERVER['QUERY_STRING'] = '';
 			$_SERVER['SCRIPT_NAME'] = '/CodeIgniter/index.php';
 			$_SERVER['SCRIPT_FILENAME'] = '/media/hdb1/ischool/ischool.zm/staging_html/CodeIgniter/index.php';
 			$_SERVER['PATH_INFO'] = '/school/settings';
 			$_SERVER['PHP_SELF'] = $_SERVER['SCRIPT_NAME'] .
 				$_SERVER['PATH_INFO'];
+			$this->assertAptivateRequestSchoolSettings('/');
+
+			// Request for http://staging.ischool.zm/school/settings?foo=bar
+			$_SERVER['REQUEST_URI'] = '/school/settings?foo=bar';
+			$_SERVER['QUERY_STRING'] = 'foo=bar';
 			$this->assertAptivateRequestSchoolSettings('/');
 		}
 		catch (Exception $e)

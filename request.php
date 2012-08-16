@@ -226,7 +226,8 @@ class Aptivate_Request extends ArrayObject
 						"not ".$this->app_root);
 				}
 				
-				if (isset($_SERVER['QUERY_STRING']))
+				if (isset($_SERVER['QUERY_STRING']) and
+					$_SERVER['QUERY_STRING'] != '')
 				{
 					$query_string = "?".$_SERVER['QUERY_STRING'];
 					
