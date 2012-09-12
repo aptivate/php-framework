@@ -43,8 +43,26 @@ require_once(dirname(__FILE__).DIRECTORY_SEPARATOR.'url_helper.php');
 class Aptivate_Request extends ArrayObject
 {
 	/**
-	 * app_path DOES NOT include a leading slash, useful for relative
-	 * paths when a <base> element is included in the page.
+	 * app_path is the path *within* the application. Each script
+	 * knows its own app_path, and passes it to the Aptivate_Request
+	 * constructor. You can link to any script in the app by 
+	 * appending that script's app_path (which never changes) to the
+	 * app_root (determined automatically by Aptivate_Request).
+	 *
+	 * E.g. if your application's top directory is in /usr/share/bar,
+	 * and your Apache configuration aliases /apps/bar to
+	 * /usr/share/bar, and the user accesses
+	 * http://yourserver/apps/bar/wee/baz, then the app_root is
+	 * "/apps/bar" (since all URLs in the app start with this prefix)
+	 * and the app_path (for the current script) is "wee/baz".
+	 *
+	 * You can (and probably should) include a <base> element in
+	 * all your pages which points to the app_root. Then you can
+	 * link to any page using just its app_path, which you already
+	 * know, and link to any resource using static paths too.
+	 *
+	 * app_path DOES NOT include a leading slash, so it can be used
+	 * for relative paths when a <base> element is included in the page.
 	 */
 	public $app_path;
 	
@@ -110,11 +128,14 @@ class Aptivate_Request extends ArrayObject
 		If a script knows that it's /foobar/index.php relative to
 		the app root, then it should pass that as
 		$script_path_within_app and we'll strip it from the 
-		REQUEST_URI to work out the real app root.
+		SCRIPT_NAME to work out the real app root.
 		
 		In that case we use SCRIPT_NAME instead of REQUEST_URI,
-		as it's what the script knows, regardless of whether
-		mod_dir was involved in finding SCRIPT_NAME or not.
+		as it will end with $script_path_within_app regardless of
+		whether the web server had to search for the file or not.
+		In contrast, in this case REQUEST_URI would probably just be
+		/apps/foobar/, and since it doesn't end with /foobar/index.php,
+		we can't use it to find the app_root.
 
 		As a convenience when using php-cgi, which doesn't
 		set SCRIPT_NAME or SCRIPT_FILENAME and sets PHP_SELF
