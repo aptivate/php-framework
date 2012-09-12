@@ -11,6 +11,8 @@ class Aptivate_PDOExtension extends PDO
 	 */
 	public function __construct($dsn)
 	{
+		$this->dsn = $dsn;
+		
 		try
 		{
 			// you can't just pass func_get_args() to call_user_func_array?
@@ -96,6 +98,11 @@ class Aptivate_PDOExtension extends PDO
 			$old_args = func_get_args();
 			$stmt = call_user_func_array(array($this, "PDO::prepare"),
 				$old_args);
+		}
+		catch (PDOException $e)
+		{
+			throw new PDOException($e->getMessage()."; ".
+				"dsn=".$this->dsn."; query=$query");
 		}
 		catch (Exception $e)
 		{
