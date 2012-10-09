@@ -137,11 +137,11 @@ class Aptivate_Request extends ArrayObject
 		/apps/foobar/, and since it doesn't end with /foobar/index.php,
 		we can't use it to find the app_root.
 
-		As a convenience when using php-cgi, which doesn't
-		set SCRIPT_NAME or SCRIPT_FILENAME and sets PHP_SELF
-		to just the PATH_INFO (or empty string if there is
-		none), you can omit REQUEST_URI and it will be assumed
-		to be set to $script_path_within_app.
+		As a convenience when using php-cgi, which doesn't set
+		SCRIPT_NAME or SCRIPT_FILENAME and sets PHP_SELF to just the
+		PATH_INFO (or empty string if there is none), you can omit
+		REQUEST_URI and it will be assumed to be set to
+		$script_path_within_app.
 		*/
 		
 		if (isset($_SERVER['REQUEST_URI']))
