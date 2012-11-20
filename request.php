@@ -364,6 +364,17 @@ class Aptivate_Request extends ArrayObject
 		}
 	}
 
+	/**
+	 * Changes the internal record of the value of a particular cookie.
+	 * This has no effect on the response, only on what's returned by
+	 * the cookie() method. It is no way to actually set a cookie!
+	 * It's mainly useful in writing tests for things that use cookies.
+	 */
+	public function fudge_cookie($name, $value)
+	{
+		$this->cookies[$name] = $value;
+	}
+
 	public function requested_uri($include_app_root, $include_params)
 	{
 		if ($include_app_root)
