@@ -45,6 +45,8 @@ class Aptivate_PDOExtension extends PDO
 		}
 
 		preg_match_all("/:(\w+)/", $query, $matches);
+		$bindings = array();
+		
 		foreach ($matches[1] as $name)
 		{
 			if (is_array($attribs))
@@ -54,11 +56,13 @@ class Aptivate_PDOExtension extends PDO
 					throw new Exception("You haven't supplied a value for :$name in query: $query");
 				}
 				$stmt->bindValue(":$name", $attribs[$name]);
+				$bindings[":$name"] = $attribs[$name];
 			}
 			else if (is_object($attribs))
 			{
 				# print("binding :$name => ".$attribs->$name."\n");
 				$stmt->bindValue(":$name", $attribs->$name);
+				$bindings[":$name"] = $attribs->$name;
 			}
 			else
 			{
@@ -68,11 +72,20 @@ class Aptivate_PDOExtension extends PDO
 			}
 		}
 
-		if (!$stmt->execute())
+		$query_msg = "Database query failed: $query with ".
+			print_r($bindings, TRUE);
+
+		try
 		{
-			$errorInfo = $stmt->errorInfo();
-			throw new Exception("Database query failed: $query: ".
-				$errorInfo[2]);
+			if (!$stmt->execute())
+			{
+				$errorInfo = $stmt->errorInfo();
+				throw new Exception("$query_msg: ".$errorInfo[2]);
+			}
+		}
+		catch (PDOException $e)
+		{
+			throw new Exception("$query_msg: ".$e->getMessage());
 		}
 		
 		$elapsedTime = microtime(true) - $startTime;
