@@ -207,9 +207,38 @@ class Aptivate_Request extends ArrayObject
 			}
 			
 			$this->script_path_within_app = $script_path_within_app;
-			
-			if (!$this->is_suffix($script_name,
+
+			if ($this->is_suffix($script_name,
 				substr($script_path_within_app, 1)))
+			{
+				// This is the "normal" case, and easy to understand:
+				// the web server says it ran /foo/bar/index.php,
+				// while our app knows its name as /bar/index.php,
+				// so the app is installed in /foo, so the app_root
+				// is /foo/.
+				$this->app_root = $this->remove_suffix($script_name,
+					substr($script_path_within_app, 1), FALSE);
+			}
+			elseif ($this->is_suffix($script_path_within_app,
+				$script_name))
+			{
+				// Having switched to using CodeIgniter for most things,
+				// we now alias / to /media/hdb1/ischool/ischool.zm/staging_html/CodeIgniter.
+				// Thus, when index.php is run, we see
+				// $_SERVER['SCRIPT_NAME'] == '/index.php';
+				// But this index.php still knows its name only as
+				// /CodeIgniter/index.php, which is not a subset of the
+				// latter. This must not fail, and must treat the
+				// app root as /, not /CodeIgniter.
+				//
+				// We do this by removing the last path component
+				// (the filename) from the script name, and use that
+				// as the app root, since this seems to be the way
+				// that users will access CodeIgniter's index.php.
+				$this->app_root = substr($script_name, 0,
+					strrpos($script_name, '/') + 1);
+			}
+			else
 			{
 				throw new Exception("Aptivate_Request constructed ".
 					"with $script_path_within_app as the relative ".
@@ -217,9 +246,6 @@ class Aptivate_Request extends ArrayObject
 					$script_name);
 			}
 						
-			$this->app_root = $this->remove_suffix($script_name,
-				substr($script_path_within_app, 1), FALSE);
-			
 			/*
 			print "script_name = $script_name\n";
 			print "script_path_within_app = $script_path_within_app\n";

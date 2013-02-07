@@ -276,6 +276,16 @@ class AptivateRequestTest extends PHPUnit_Framework_TestCase
 			$_SERVER['REQUEST_URI'] = '/school/settings?foo=bar';
 			$_SERVER['QUERY_STRING'] = 'foo=bar';
 			$this->assertAptivateRequestSchoolSettings('/');
+			
+			// Having switched to using CodeIgniter for most things,
+			// we now alias / to /media/hdb1/ischool/ischool.zm/staging_html/CodeIgniter.
+			// Thus, when index.php is run, we see
+			$_SERVER['SCRIPT_NAME'] = '/index.php';
+			// But this index.php still knows its name only as
+			// /CodeIgniter/index.php, which is not a subset of the
+			// latter. This must not fail, and must treat the
+			// app root as /, not /CodeIgniter.
+			$this->assertAptivateRequestSchoolSettings('/');
 		}
 		catch (Exception $e)
 		{
