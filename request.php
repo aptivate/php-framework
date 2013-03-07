@@ -77,7 +77,7 @@ class Aptivate_Request extends ArrayObject
 	private $method;
 	private $get;
 	private $post;
-	private $cookies;
+	public $cookies;
 
 	private static function is_suffix($path, $suffix)
 	{
@@ -427,6 +427,63 @@ class Aptivate_Request extends ArrayObject
 		return isset($_SERVER['HTTPS']) and $_SERVER['HTTPS'] != "" and
 			$_SERVER['HTTPS'] != "off";
 	}
-};
+	
+	/**
+	 * @see http://www.php.net/manual/en/reserved.variables.files.php#106608
+	 */
+	function attached_files($files_in = NULL, $top = TRUE)
+	{
+		$files_out = array();
+		
+		if (!$files_in)
+		{
+			$files_in = $_FILES;
+		}
 
+		foreach ($files_in as $name=>$file)
+		{
+			if ($top)
+				$sub_name = $file['name'];
+			else
+				$sub_name = $name;
+		
+			// print("top=$top name=$sub_name\n");
+			
+			if (is_array($sub_name))
+			{
+				foreach (array_keys($sub_name) as $key)
+				{
+					$file_tmp = array($key => array());
+					foreach ($file as $file_attrib_name => $values)
+					{
+						$file_tmp[$key][$file_attrib_name] =
+							$file[$file_attrib_name][$key];
+					}
+				    $files_out[$name] = $this->attached_files($file_tmp,
+				    	FALSE);
+					/*
+				    $file_tmp[$key] = array(
+				        'name'     => $file['name'][$key],
+				        'type'     => $file['type'][$key],
+				        'tmp_name' => $file['tmp_name'][$key],
+				        'error'    => $file['error'][$key],
+				        'size'     => $file['size'][$key],
+				    );
+					print("top=$top $name [".$key."] before reorg = ".
+						print_r($file_tmp[$key], TRUE)."\n");
+					print("top=$top $name [".$key."] after reorg = ".
+						print_r($files_out[$name][$key], TRUE)."\n");
+				    */
+				}
+			}
+			else
+			{
+				$files_out[$name] = $file;
+			}
+		}
+		
+		// print("top=$top returning ".print_r($files_out, TRUE)."\n");
+		return $files_out;
+	}	
+}
 ?>
