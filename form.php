@@ -68,6 +68,11 @@ class Aptivate_Form
 	{
 		return $this->contextObject;
 	}
+
+	public function request()
+	{
+		return $this->request;
+	}
 	
 	public function errorsOn($fieldName)
 	{
@@ -145,6 +150,11 @@ class Aptivate_Form
 		
 		if (is_array($this->contextObject))
 		{
+			if (!isset($this->contextObject[$fieldName]))
+			{
+				throw new Exception("No default value provided for ".
+					$this->formName.".".$fieldName);
+			}
 			return $this->contextObject[$fieldName];
 		}
 		else
@@ -153,17 +163,18 @@ class Aptivate_Form
 		}
 	}
 	
-	function formatFieldWithErrors($fieldHtml, $errors)
+	function formatFieldWithErrors($fieldName, $fieldHtml, $errors)
 	{
 		if (count($errors))
 		{
-			$html = "<span class='field_with_errors'>$fieldHtml";
+			$html = "<span class='field_$fieldName field_with_errors'>".
+				$fieldHtml;
 			
 			if (!is_array($errors))
 			{
 				// ActiveRecord\Errors returns a simple string
 				// if there's only one error
-				$html .= "<span class='error'>$errors</span>\n";
+				$html .= "<span class='field error'>$errors</span>\n";
 			}
 			elseif (count($errors) > 1)
 			{
@@ -207,7 +218,8 @@ class Aptivate_Form
 			
 			$html = '<input '.$this->attributes($attribs).'/>';	
 			$errors = $this->errorsOn($fieldName);
-			return $this->formatFieldWithErrors($html, $errors);
+			return $this->formatFieldWithErrors($fieldName, $html,
+				$errors);
 		}
 	}
 
@@ -261,7 +273,7 @@ class Aptivate_Form
 		$html = "<textarea ".$this->attributes($attribs)."/>".
 			$value."</textarea>";
 		$errors = $this->errorsOn($fieldName);
-		return $this->formatFieldWithErrors($html, $errors);
+		return $this->formatFieldWithErrors($fieldName, $html, $errors);
 	}
 	
 	function submitButton($label, $name = "commit")
@@ -482,7 +494,8 @@ class Aptivate_Form
 		}
 		
 		$errors = $this->errorsOn($fieldName);
-		$output = $this->formatFieldWithErrors($output, $errors);
+		$output = $this->formatFieldWithErrors($fieldName, $output,
+			$errors);
 		$output = "
 			<fieldset class='$css_class'>
 			$output
@@ -566,7 +579,8 @@ class Aptivate_Form
 		}
 
 		$errors = $this->errorsOn($fieldName);
-		$output = $this->formatFieldWithErrors($output, $errors);
+		$output = $this->formatFieldWithErrors($fieldName, $output,
+			$errors);
 		$output = "
 			<fieldset class='$css_class'>
 			$output
