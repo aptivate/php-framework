@@ -389,7 +389,7 @@ class Aptivate_Form
 		return '<input '.$this->attributes($attribs).'/>';
 	}
 
-	function booleanControlWithLabel($fieldName, $controlValue, $label,
+	function booleanControl($fieldName, $controlValue,
 		$multipleSelect = FALSE, $attribs = array())
 	{
 		if (!isset($attribs['id']))
@@ -432,7 +432,14 @@ class Aptivate_Form
 				'value' => $controlValue),
 			$attribs);
 			
-		return "<input ".$this->attributes($attribs)."/>\n".
+		return "<input ".$this->attributes($attribs)."/>";
+	}
+
+	function booleanControlWithLabel($fieldName, $controlValue, $label,
+		$multipleSelect = FALSE, $attribs = array())
+	{
+		return $this->booleanControl($fieldName, $controlValue,
+			$multipleSelect, $attribs)."\n".
 			"<label for='".$attribs['id']."'>".htmlentities($label).
 			"</label>\n";
 	}
