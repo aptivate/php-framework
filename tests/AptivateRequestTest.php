@@ -303,8 +303,25 @@ class AptivateRequestTest extends PHPUnit_Framework_TestCase
 		$this->assertEquals('/', $req->app_root);
 		$this->assertEquals('fake-test-url', $req->app_path);
 	}
-	
-	public function test_attached_files_list()
+
+	public function test_attached_files_list_with_no_file_uploaded()
+	{
+		$_FILES = array(
+			'myfile' => array(
+				'error' => array(4),
+				'size' => array(0),
+				'name' => array(''),
+				'type' => array(''),
+				'tmp_name' => array(''),
+			));
+		$req = new Aptivate_Request('GET', '/fake-test-script.php',
+			'/fake-test-url');
+		$files = $req->attached_files();
+		// print("attached_files = ".print_r($files, TRUE)."\n");
+		$this->assertEquals(array(), $files);
+	}	
+
+	public function test_attached_files_list_with_some_files_missing()
 	{
 		$_FILES = array(
 			'myfile' => array(

@@ -507,6 +507,11 @@ class Aptivate_Request extends ArrayObject
 						print_r($files_out[$name][$key], TRUE)."\n");
 				    */
 				}
+				
+				if (!$files_out[$name])
+				{
+					unset($files_out[$name]);
+				}
 			}
 			else
 			{
