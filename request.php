@@ -447,10 +447,12 @@ class Aptivate_Request extends ArrayObject
 			else
 				$sub_name = $name;
 		
-			// print("top=$top name=$sub_name\n");
+			// print("top=$top sub_name=".print_r($sub_name, TRUE)."\n");
 			
 			if (is_array($sub_name))
 			{
+				$files_out[$name] = array();
+				
 				foreach (array_keys($sub_name) as $key)
 				{
 					$file_tmp = array($key => array());
@@ -458,9 +460,39 @@ class Aptivate_Request extends ArrayObject
 					{
 						$file_tmp[$key][$file_attrib_name] =
 							$file[$file_attrib_name][$key];
+						/*
+						print($file_tmp.'['.$key.']['.
+							$file_attrib_name.'] = '.
+							print_r($file[$file_attrib_name][$key],
+								TRUE)."\n");
+						*/
 					}
-				    $files_out[$name] = $this->attached_files($file_tmp,
+					
+					/*
+					print("key = $key, file_tmp = ".
+						print_r($file_tmp, TRUE)."\n");
+					*/
+					
+					if ($file_tmp[$key]['error'] == 4)
+					{
+						continue;
+					}
+					
+					$recursed_file = $this->attached_files($file_tmp,
 				    	FALSE);
+				    
+				    // print("files_out before = ".print_r($files_out, TRUE)."\n");
+				    if (is_numeric($key))
+				    {
+				    	// renumber if necessary due to skipped files
+				    	$files_out[$name][] = $recursed_file[$key];
+				    }
+				    else
+				    {
+				    	$files_out[$name][$key] = $recursed_file[$key];
+				    }
+				    // print("files_out after  = ".print_r($files_out, TRUE)."\n");
+
 					/*
 				    $file_tmp[$key] = array(
 				        'name'     => $file['name'][$key],
