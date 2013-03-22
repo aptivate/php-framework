@@ -192,7 +192,14 @@ class Aptivate_Request extends ArrayObject
 			}
 
 			// No application root on manually-constructed
-			// (artificial) requests.
+			// (artificial) requests. But it must start with slash,
+			// because we remove that later to ensure that app_path
+			// does NOT start with a slash.
+			if (substr($test_request_path, 0, 1) != '/')
+			{
+				throw new Exception("test_request_path must start ".
+					"with a slash");
+			}
 			
 			$this->app_root = "/";
 			$this->app_path = $test_request_path;
@@ -401,11 +408,12 @@ class Aptivate_Request extends ArrayObject
 		$this->cookies[$name] = $value;
 	}
 
-	public function requested_uri($include_app_root, $include_params)
+	public function requested_uri($include_app_root, $include_params,
+		$extra_params = array())
 	{
 		if ($include_app_root)
 		{
-			$uri = $this->app_root.'/'.$this->app_path;
+			$uri = $this->app_root.$this->app_path;
 		}
 		else
 		{
@@ -414,7 +422,8 @@ class Aptivate_Request extends ArrayObject
 		
 		if ($include_params)
 		{
-			return UrlHelper::url_params($uri, $this->get);
+			return UrlHelper::url_params($uri,
+				array_merge($this->get, $extra_params));
 		}
 		else
 		{

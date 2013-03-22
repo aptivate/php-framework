@@ -357,5 +357,57 @@ class AptivateRequestTest extends PHPUnit_Framework_TestCase
 				),
 			), $files);
 	}
+	
+	public function test_build_new_uris_based_on_requested_uri()
+	{
+		$req = new Aptivate_Request('GET', '/fake-test-script.php',
+			'/fake-test-url');
+		$this->assertEquals('/', $req->app_root);
+		$this->assertEquals('fake-test-url', $req->app_path);
+		
+		$this->assertEquals('/fake-test-url',
+			$req->requested_uri(TRUE /* $include_app_root */,
+				TRUE /* $include_params */));
+		$this->assertEquals('/fake-test-url',
+			$req->requested_uri(TRUE /* $include_app_root */,
+				FALSE /* $include_params */));
+				
+		$this->assertEquals('fake-test-url',
+			$req->requested_uri(FALSE /* $include_app_root */,
+				TRUE /* $include_params */));
+		$this->assertEquals('fake-test-url',
+			$req->requested_uri(FALSE /* $include_app_root */,
+				FALSE /* $include_params */));
+
+		$this->assertEquals('fake-test-url',
+			$req->requested_uri(FALSE /* $include_app_root */,
+				FALSE /* $include_params */,
+				array('foo' => 'bar') /* $extra_params */));
+		$this->assertEquals('fake-test-url?foo=bar',
+			$req->requested_uri(FALSE /* $include_app_root */,
+				TRUE /* $include_params */,
+				array('foo' => 'bar') /* $extra_params */));
+		$this->assertEquals('fake-test-url?foo=bar&baz=whee',
+			$req->requested_uri(FALSE /* $include_app_root */,
+				TRUE /* $include_params */,
+				array('foo' => 'bar', 'baz' => 'whee')
+				/* $extra_params */));
+
+		$req = new Aptivate_Request('GET', '/fake-test-script.php',
+			'/fake-test-url', array('foo' => 'food'));
+		$this->assertEquals('fake-test-url?foo=food',
+			$req->requested_uri(FALSE /* $include_app_root */,
+				TRUE /* $include_params */));
+		$this->assertEquals('fake-test-url?foo=food&baz=whee',
+			$req->requested_uri(FALSE /* $include_app_root */,
+				TRUE /* $include_params */,
+				array('baz' => 'whee')
+				/* $extra_params */));
+		$this->assertEquals('fake-test-url?foo=bar&baz=whee',
+			$req->requested_uri(FALSE /* $include_app_root */,
+				TRUE /* $include_params */,
+				array('foo' => 'bar', 'baz' => 'whee')
+				/* $extra_params */));
+	}
 }
 ?>
