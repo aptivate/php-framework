@@ -408,6 +408,13 @@ class AptivateRequestTest extends PHPUnit_Framework_TestCase
 				TRUE /* $include_params */,
 				array('foo' => 'bar', 'baz' => 'whee')
 				/* $extra_params */));
+		$this->assertEquals('fake-test-url?baz=whee',
+			$req->requested_uri(FALSE /* $include_app_root */,
+				TRUE /* $include_params */,
+				array('foo' => NULL, 'baz' => 'whee')
+				/* $extra_params */),
+			"We should be able to delete parameters by setting ".
+			"them to NULL");
 	}
 }
 ?>

@@ -422,8 +422,18 @@ class Aptivate_Request extends ArrayObject
 		
 		if ($include_params)
 		{
-			return UrlHelper::url_params($uri,
-				array_merge($this->get, $extra_params));
+			$params_to_include = array_merge($this->get, $extra_params);
+			
+			// Allow deleting a parameter by setting it to NULL
+			foreach ($params_to_include as $name => $value)
+			{
+				if ($value === NULL)
+				{
+					unset($params_to_include[$name]);
+				}
+			}
+			
+			return UrlHelper::url_params($uri, $params_to_include);
 		}
 		else
 		{
