@@ -278,6 +278,7 @@ class Aptivate_Form
 	
 	function submitButton($label, $name = "commit")
 	{
+		$name = $this->parameterName($name);
 		$label = htmlentities($label, ENT_QUOTES);
 		return "<input type='submit' name='$name' value='$label' />";
 	}
