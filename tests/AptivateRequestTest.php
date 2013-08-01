@@ -416,5 +416,49 @@ class AptivateRequestTest extends PHPUnit_Framework_TestCase
 			"We should be able to delete parameters by setting ".
 			"them to NULL");
 	}
+
+	/**
+	 * Aptivate_Request should give a helpful error message when asked
+	 * to extract a subarray of parameters (using []) and the subset has
+	 * a single value instead of being an array. This is a developer error
+	 * (using the wrong name for a form field?).
+	 */
+	public function test_aptivate_request_handles_invalid_param_subset_properly()
+	{
+		$_GET = array('hello' => 'whee!'); // not an array
+		$caught_exception = NULL;
+		
+		try
+		{
+			$req = new Aptivate_Request('GET', '/fake-test-script.php',
+				'/fake-test-url');
+			$req['hello'];
+		}
+		catch (Exception $e)
+		{
+			$caught_exception = $e;
+		}
+		
+		$this->assertEquals("The GET parameter 'hello' should be a ".
+			"sub-array, but was: 'whee!'", $caught_exception->getMessage());
+		
+		$_GET = array();
+		$_POST = array('hello' => 'whee!'); // not an array
+		$caught_exception = NULL;
+		
+		try
+		{
+			$req = new Aptivate_Request('POST', '/fake-test-script.php',
+				'/fake-test-url');
+			$req['hello'];
+		}
+		catch (Exception $e)
+		{
+			$caught_exception = $e;
+		}
+		
+		$this->assertEquals("The POST parameter 'hello' should be a ".
+			"sub-array, but was: 'whee!'", $caught_exception->getMessage());
+	}
 }
 ?>

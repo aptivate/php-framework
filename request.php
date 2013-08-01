@@ -362,6 +362,23 @@ class Aptivate_Request extends ArrayObject
 	{
 		return ($this->method == 'POST');
 	}
+
+	protected function param_subset(array $param_array, $key, $array_name)
+	{
+		if (!isset($param_array[$key]))
+		{
+			$sub_array = array();
+		}
+		else
+		{
+			$sub_array = $param_array[$key];
+			if (!is_array($sub_array))
+			{
+				throw new InvalidArgumentException("The $array_name parameter ".
+					"'$key' should be a sub-array, but was: '$sub_array'");
+			}
+		}
+	}
 	
 	/**
 	 * Override ArrayObject::offsetGet, to overload [] operator, to
@@ -371,11 +388,12 @@ class Aptivate_Request extends ArrayObject
 	 */
 	public function offsetGet($index)
 	{
+		$sub_get  = $this->param_subset($this->get, $index, 'GET');
+		$sub_post = $this->param_subset($this->post, $index, 'POST');
+		
 		$req = new Aptivate_Request($this->method,
 			$this->script_path_within_app, '/'.$this->app_path,
-			isset($this->get[$index])  ? $this->get[$index]  : array(),
-			isset($this->post[$index]) ? $this->post[$index] : array(),
-			$this->cookies);
+			$sub_get, $sub_post, $this->cookies);
 		$req->app_root = $this->app_root;
 		return $req;
 	}
