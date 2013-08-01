@@ -418,6 +418,25 @@ class AptivateRequestTest extends PHPUnit_Framework_TestCase
 	}
 
 	/**
+	 * Aptivate_Request should extract sub-arrays from the request properly
+	 */
+	public function test_aptivate_request_extracts_parameter_subsets()
+	{
+		$_GET = array('hello' => array('bonk' => 'whee!'));
+		$req = new Aptivate_Request('GET', '/fake-test-script.php',
+			'/fake-test-url');
+		$this->assertEquals('whee!', $req['hello']->param('bonk'));
+		$this->assertEquals('whee!', $req['hello']->param('bonk'));
+		
+		$_POST = $_GET;
+		$_GET = array();
+		$req = new Aptivate_Request('GET', '/fake-test-script.php',
+			'/fake-test-url');
+		$this->assertEquals('whee!', $req['hello']->param('bonk'));
+		$this->assertEquals('whee!', $req['hello']->param('bonk'));
+	}
+
+	/**
 	 * Aptivate_Request should give a helpful error message when asked
 	 * to extract a subarray of parameters (using []) and the subset has
 	 * a single value instead of being an array. This is a developer error

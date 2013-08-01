@@ -378,6 +378,8 @@ class Aptivate_Request extends ArrayObject
 					"'$key' should be a sub-array, but was: '$sub_array'");
 			}
 		}
+		
+		return $sub_array;
 	}
 	
 	/**

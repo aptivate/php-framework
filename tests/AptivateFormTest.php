@@ -20,5 +20,23 @@ class AptivateFormTest extends PHPUnit_Framework_TestCase
 			"The submit button's name is not prefixed by the form name, ".
 			"or something else is wrong with the generated HTML.");
 	}
+
+	/**
+	 * Aptivate_Form should extract parameters properly from the subarray
+	 * created by PHP for the form values.
+	 */
+	public function test_form_values_are_extracted_properly_from_request_params()
+	{
+		$_GET = array(
+			'search' => array(
+				'q' => 'what is the meaning of Liff?',
+			)
+		);
+		$req = new Aptivate_Request('GET', '/fake-test-script.php',
+			'/fake-test-url');
+		$form = new Aptivate_Form('search', (object)array('q' => ''), $req);
+		$query = $form->currentValue('q');
+		$this->assertEquals('what is the meaning of Liff?', $query);
+	}
 }
 ?>
